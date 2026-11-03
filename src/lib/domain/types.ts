@@ -15,8 +15,13 @@ export type MealStatus = "planned" | "done" | "skipped";
 /** YYYY-MM-DD (Asia/Seoul 기준 로컬 날짜) */
 export type ISODate = string;
 
+/** label: 포장 라벨 · user: 직접 입력 · reference: 일반 식품성분표 참고값 */
+export type NutritionSource = "label" | "user" | "reference";
+
 export interface Nutrition {
   basis: "per_100g" | "per_100ml" | "per_ea";
+  /** 없으면 직접 입력으로 간주 */
+  source?: NutritionSource;
   kcal: number;
   protein: number;
   fat: number;
@@ -117,6 +122,8 @@ export interface Recipe {
 export interface KitchenSettings {
   /** 임박 기준일 (D-n) */
   soonDays: number;
+  /** 기존 재료에 영양 참고값을 채운 버전 (한 번만 실행) */
+  referenceNutritionVersion?: number;
 }
 
 export interface KitchenState {

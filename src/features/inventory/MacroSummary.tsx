@@ -36,6 +36,7 @@ export function MacroSummary({
 
   const lead = total > 0 ? MACRO_ORDER.reduce((a, b) => (c.share[b] > c.share[a] ? b : a)) : null;
   const lowProtein = total > 0 && c.share.protein < 0.15;
+  const referenceCount = stock.filter((s) => s.ingredient.nutrition?.source === "reference").length;
 
   return (
     <section aria-label="영양 구성" className="mt-4 rounded-[14px] border border-line p-4">
@@ -95,6 +96,7 @@ export function MacroSummary({
 
       <p className="mt-2.5 text-[11.5px] leading-relaxed text-mute">
         ‘풍부’ 기준: 100g당 탄수화물 {RICH_THRESHOLD.carbs}g · 단백질 {RICH_THRESHOLD.protein}g · 지방 {RICH_THRESHOLD.fat}g 이상
+        {referenceCount > 0 && ` · ${referenceCount}개 재료는 일반 참고값 기준`}
         {c.missing.length > 0 && ` · 영양 정보 없는 ${c.missing.map((i) => i.name).join(", ")} 제외`}
       </p>
     </section>

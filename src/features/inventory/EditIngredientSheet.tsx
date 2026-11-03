@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { Sheet } from "@/components/ui/Sheet";
 import { useToast } from "@/components/ui/Toast";
+import { findReferenceNutrition } from "@/lib/domain/reference-nutrition";
 import { STORAGE_LABEL, STORAGE_ORDER, unitLabel } from "@/lib/domain/units";
 import type { Ingredient, Nutrition, StorageLocation } from "@/lib/domain/types";
 import { useKitchen } from "@/lib/store/kitchen-store";
@@ -50,6 +51,22 @@ function EditBody({ ingredient, onDone }: { ingredient: Ingredient; onDone: () =
     carbs: toText(ingredient.nutrition?.carbs),
   });
   const [gramsPerEa, setGramsPerEa] = useState(toText(ingredient.gramsPerEa));
+  // 참고값을 그대로 쓰는지 (값을 하나라도 고치면 직접 입력으로 바뀐다)
+  const [fromReference, setFromReference] = useState(ingredient.nutrition?.source === "reference");
+  const ref = findReferenceNutrition(ingredient.name, ingredient.baseUnit);
+
+  const loadReference = () => {
+    if (!ref) return;
+    setBasis(ref.nutrition.basis);
+    setNut({
+      kcal: String(ref.nutrition.kcal),
+      protein: String(ref.nutrition.protein),
+      fat: String(ref.nutrition.fat),
+      carbs: String(ref.nutrition.carbs),
+    });
+    if (ref.gramsPerEa && !gramsPerEa) setGramsPerEa(String(ref.gramsPerEa));
+    setFromReference(true);
+  };
 
   const filled = NUT_FIELDS.filter((f) => nut[f.key].trim() !== "").length;
   // 영양 정보는 4개 값을 모두 입력했을 때만 저장한다 (일부 값을 0으로 채우지 않음)
@@ -75,6 +92,7 @@ function EditBody({ ingredient, onDone }: { ingredient: Ingredient; onDone: () =
       filled === NUT_FIELDS.length
         ? {
             basis,
+            source: fromReference ? "reference" : "user",
             kcal: Number(nut.kcal) || 0,
             protein: Number(nut.protein) || 0,
             fat: Number(nut.fat) || 0,
@@ -153,7 +171,10 @@ function EditBody({ ingredient, onDone }: { ingredient: Ingredient; onDone: () =
               <input
                 inputMode="decimal"
                 value={nut[f.key]}
-                onChange={(e) => setNut((n) => ({ ...n, [f.key]: e.target.value.replace(/[^0-9.]/g, "") }))}
+                onChange={(e) => {
+                  setNut((n) => ({ ...n, [f.key]: e.target.value.replace(/[^0-9.]/g, "") }));
+                  setFromReference(false);
+                }}
                 placeholder="-"
                 className={numInput}
               />
@@ -171,6 +192,15 @@ function EditBody({ ingredient, onDone }: { ingredient: Ingredient; onDone: () =
               className={numInput}
             />
           </label>
+        )}
+        {ref && (
+          <button
+            type="button"
+            onClick={loadReference}
+            className="mt-2 h-9 rounded-full border border-line px-3.5 text-[13px] font-medium active:bg-subtle"
+          >
+            ‘{ref.matchedName}’ 참고값 불러오기
+          </button>
         )}
         <p className={nutritionValid ? "mt-2 text-[12px] text-mute" : "mt-2 text-[12px] text-danger"}>
           {nutritionValid

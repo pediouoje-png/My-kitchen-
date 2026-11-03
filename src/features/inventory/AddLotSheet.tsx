@@ -11,6 +11,7 @@ import { cn } from "@/lib/cn";
 import { formatUnitPrice, STORAGE_LABEL, STORAGE_ORDER } from "@/lib/domain/units";
 import type { BaseUnit, Ingredient, StorageLocation } from "@/lib/domain/types";
 import { guessCategory, suggestStorage } from "@/lib/domain/category";
+import { findReferenceNutrition } from "@/lib/domain/reference-nutrition";
 import { useKitchen } from "@/lib/store/kitchen-store";
 import { uid } from "@/lib/store/reducer";
 import { CategoryPicker } from "./CategoryPicker";
@@ -70,6 +71,7 @@ function AddLotBody({
   const existing = selected ?? exactMatch;
   const isNew = !existing && name.length > 0;
   const guessed = isNew ? guessCategory(name) : null;
+  const ref = isNew ? findReferenceNutrition(name, newUnit) : null;
   const category = pickedCategory ?? guessed ?? "기타";
   const storage: StorageLocation =
     pickedStorage ?? existing?.defaultStorage ?? (isNew ? suggestStorage(name, category) : null) ?? defaultStorage;
@@ -97,7 +99,16 @@ function AddLotBody({
       ingId = uid("ing");
       dispatch({
         type: "addIngredient",
-        ingredient: { id: ingId, name, category, baseUnit: newUnit, defaultStorage: storage, storageDays: {}, nutrition: null },
+        ingredient: {
+          id: ingId,
+          name,
+          category,
+          baseUnit: newUnit,
+          defaultStorage: storage,
+          storageDays: {},
+          nutrition: ref?.nutrition ?? null,
+          gramsPerEa: ref?.gramsPerEa,
+        },
       });
     }
     dispatch({
@@ -178,6 +189,11 @@ function AddLotBody({
                   분류{guessed && !pickedCategory && <span className="text-mute"> · 이름으로 추천했어요</span>}
                 </p>
                 <CategoryPicker value={category} onChange={setPickedCategory} />
+                <p className="mt-3 text-[12.5px] leading-relaxed text-sub">
+                  {ref
+                    ? `영양 정보: ‘${ref.matchedName}’ 일반 참고값을 넣어 둘게요. 포장 라벨 값으로 바꿀 수 있어요.`
+                    : "영양 정보: 참고값이 없어 비워 둬요. 등록 후 포장 라벨 값을 입력할 수 있어요."}
+                </p>
               </div>
             )}
           </>

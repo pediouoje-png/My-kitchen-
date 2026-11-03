@@ -194,7 +194,16 @@ export function IngredientDetailScreen() {
                 </div>
               ))}
             </div>
-          ) : (
+          ) : null}
+          {ing.nutrition?.source === "reference" && (
+            <p className="mt-2 text-[12.5px] leading-relaxed text-sub">
+              일반 식품성분표 기준 <b className="font-semibold">참고값</b>이에요. 제품마다 다를 수 있어요 ·{" "}
+              <button type="button" onClick={() => setEditing(true)} className="font-semibold text-green">
+                라벨 값으로 바꾸기
+              </button>
+            </p>
+          )}
+          {ing.nutrition ? null : (
             <button type="button" onClick={() => setEditing(true)} className="w-full rounded-[14px] bg-subtle px-4 py-4 text-left text-[14px] text-sub active:opacity-80">
               영양 정보 없음 — <b className="font-semibold text-green">포장 라벨 보고 입력하기</b>
             </button>

@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { todayKST } from "@/lib/date";
 import { guessCategory } from "@/lib/domain/category";
+import { withReferenceNutrition } from "@/lib/domain/reference-nutrition";
 import type { ISODate, KitchenState } from "@/lib/domain/types";
 import { createSeedState } from "@/lib/mock/seed";
 import { kitchenReducer, type KitchenAction } from "./reducer";
@@ -46,17 +47,26 @@ function readStorage(): KitchenState | null {
   }
 }
 
+const REFERENCE_NUTRITION_VERSION = 1;
+
 /**
- * 이전 버전에서 직접 등록한 재료는 분류가 모두 "기타"로 저장됐다.
- * 이름 키워드로 분류가 확실히 추정되는 경우에만 바로잡는다.
+ * 저장된 데이터 보정 (앱을 열 때 실행).
+ * 1) 이전 버전에서 직접 등록한 재료는 분류가 모두 "기타"였다 → 이름으로 확실할 때만 바로잡는다.
+ * 2) 영양 정보가 비어 있는 재료에 참고값을 한 번 채운다. 사용자가 나중에 지운 값은 다시 채우지 않는다.
  */
 function migrate(state: KitchenState): KitchenState {
+  const fillNutrition = (state.settings.referenceNutritionVersion ?? 0) < REFERENCE_NUTRITION_VERSION;
   return {
     ...state,
+    settings: { ...state.settings, referenceNutritionVersion: REFERENCE_NUTRITION_VERSION },
     ingredients: state.ingredients.map((i) => {
-      if (i.category !== "기타") return i;
-      const guess = guessCategory(i.name);
-      return guess ? { ...i, category: guess } : i;
+      let next = i;
+      if (next.category === "기타") {
+        const guess = guessCategory(next.name);
+        if (guess) next = { ...next, category: guess };
+      }
+      if (fillNutrition) next = withReferenceNutrition(next);
+      return next;
     }),
   };
 }
@@ -79,7 +89,7 @@ export function KitchenProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const t = todayKST();
     const stored = readStorage();
-    dispatch({ type: "replace", state: stored ?? createSeedState(t) });
+    dispatch({ type: "replace", state: stored ?? migrate(createSeedState(t)) });
     loaded.current = true;
     // 마운트 직후 한 번만 실행되는 초기화
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -104,7 +114,7 @@ export function KitchenProvider({ children }: { children: React.ReactNode }) {
   const resetDemo = useCallback(() => {
     const t = todayKST();
     setToday(t);
-    dispatch({ type: "replace", state: createSeedState(t) });
+    dispatch({ type: "replace", state: migrate(createSeedState(t)) });
   }, []);
 
   const value = useMemo(() => ({ state, dispatch, today, ready, resetDemo }), [state, today, ready, resetDemo]);
