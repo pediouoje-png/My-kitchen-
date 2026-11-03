@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>MY KITCHEN 시안</title>
+<style>
+@font-face { font-family: Pretendard; src: url(PretendardVariable.woff2) format("woff2"); font-weight: 100 900; }
+:root{
+  --bg:#FFFFFF; --bg-subtle:#F6F7F6; --line:#E4E7E4; --text:#1E2320; --sub:#6A716C; --mute:#9AA19C;
+  --green:#4F7A5A; --green-soft:#EAF1EC; --warn:#B9832F; --warn-soft:#F7F0E3; --danger:#B85C45; --danger-soft:#F6EAE6;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Pretendard,sans-serif;background:#E9ECEA;color:var(--text);padding:48px;font-feature-settings:"tnum";-webkit-font-smoothing:antialiased}
+.row{display:flex;gap:40px;align-items:flex-start}
+.label{font-size:15px;color:var(--sub);margin:0 0 12px 4px;font-weight:500}
+.phone{width:390px;height:844px;background:var(--bg);border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;box-shadow:0 1px 2px rgba(0,0,0,.06),0 12px 40px rgba(30,35,32,.10)}
+.status{height:50px;flex:none;display:flex;align-items:flex-end;justify-content:space-between;padding:0 30px 8px 34px;font-size:16px;font-weight:600}
+.status .r{display:flex;gap:6px;align-items:center}
+.content{flex:1;overflow:hidden;padding:0 20px}
+.hdr{display:flex;justify-content:space-between;align-items:center;padding:10px 0 14px}
+.hdr h1{font-size:28px;font-weight:700;letter-spacing:-.02em}
+.eyebrow{font-size:14px;color:var(--sub);font-weight:500;margin-top:6px}
+.icon-btn{width:40px;height:40px;border-radius:20px;display:flex;align-items:center;justify-content:center;color:var(--text)}
+svg{display:block}
+.sec{margin-top:22px}
+.sec-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.sec-h h2{font-size:17px;font-weight:650}
+.sec-h a{font-size:14px;color:var(--sub);text-decoration:none}
+.card{border:1px solid var(--line);border-radius:14px;background:var(--bg)}
+.banner{display:flex;align-items:center;gap:12px;background:var(--green-soft);border-radius:14px;padding:14px 14px 14px 16px}
+.banner .t{flex:1}
+.banner .t b{display:block;font-size:15px;font-weight:600;color:#2F5139}
+.banner .t span{font-size:13px;color:#56715D}
+.meal{display:flex;align-items:center;gap:12px;padding:14px 14px 14px 16px}
+.meal + .meal{border-top:1px solid var(--line)}
+.meal .slot{width:34px;font-size:13px;color:var(--sub);font-weight:500}
+.meal .m{flex:1;min-width:0}
+.meal .m b{display:block;font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meal .m span{font-size:13px;color:var(--sub)}
+.meal.done .m b{color:var(--sub)}
+.btn{height:36px;padding:0 14px;border-radius:10px;font-size:14px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:4px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-family:inherit}
+.btn.primary{background:var(--green);border-color:var(--green);color:#fff}
+.btn.lg{height:52px;border-radius:14px;font-size:16px}
+.check{width:28px;height:28px;border-radius:14px;background:var(--green-soft);color:var(--green);display:flex;align-items:center;justify-content:center}
+.badge{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;font-size:12px;font-weight:600;white-space:nowrap}
+.b-warn{background:var(--warn-soft);color:var(--warn)}
+.b-danger{background:var(--danger-soft);color:var(--danger)}
+.b-green{background:var(--green-soft);color:var(--green)}
+.b-gray{background:var(--bg-subtle);color:var(--sub)}
+.b-line{border:1px dashed #C9CEC9;color:var(--sub);background:transparent}
+.list-row{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}
+.list-row .n{flex:1;min-width:0}
+.list-row .n b{display:block;font-size:16px;font-weight:550}
+.list-row .n span{font-size:13px;color:var(--sub)}
+.list-row .q{font-size:15px;font-weight:500;text-align:right}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:var(--bg-subtle);border-radius:14px;padding:14px 16px}
+.stat span{font-size:13px;color:var(--sub)}
+.stat b{display:block;font-size:20px;font-weight:700;margin-top:4px;letter-spacing:-.01em}
+.stat b small{font-size:14px;font-weight:500;margin-left:1px}
+.tabbar{flex:none;height:84px;border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:8px 6px 0;background:rgba(255,255,255,.96)}
+.tab{width:64px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--mute);font-weight:500}
+.tab.on{color:var(--text);font-weight:600}
+.tab.on svg{color:var(--green)}
+.tab .plus{width:48px;height:48px;border-radius:24px;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;margin-top:-4px}
+.home-ind{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:#1E2320}
+/* planner */
+.week-nav{display:flex;align-items:center;justify-content:space-between;margin:2px 0 12px}
+.week-nav b{font-size:15px;font-weight:600}
+.strip{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.day{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 0 9px;border-radius:12px;font-size:12px;color:var(--sub)}
+.day b{font-size:17px;font-weight:600;color:var(--text)}
+.day .dots{display:flex;gap:3px;height:5px}
+.day .dots i{width:5px;height:5px;border-radius:3px;background:#CFD5D0}
+.day .dots i.f{background:var(--green)}
+.day.on{background:var(--text);color:#C9CEC9}
+.day.on b{color:#fff}
+.day.on .dots i{background:#59605B}.day.on .dots i.f{background:#8FC09C}
+.day.today b{color:var(--green)}
+.slot-h{display:flex;align-items:center;justify-content:space-between;margin:16px 0 8px}
+.slot-h h3{font-size:15px;font-weight:650}
+.slot-h span{font-size:13px;color:var(--sub)}
+.plan{padding:14px 16px}
+.plan .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.plan .top b{font-size:16px;font-weight:600}
+.plan .meta{font-size:13px;color:var(--sub);margin-top:3px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{height:26px;padding:0 9px;border-radius:13px;background:var(--bg-subtle);font-size:12.5px;display:inline-flex;align-items:center;gap:4px;color:#3C433E}
+.chip.miss{background:var(--danger-soft);color:var(--danger)}
+.chip .dot{width:5px;height:5px;border-radius:3px;background:var(--green)}
+.add{border:1px dashed #C9CEC9;border-radius:14px;height:48px;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--sub);font-size:14px;font-weight:500;margin-top:8px}
+.sumbar{display:flex;justify-content:space-between;align-items:center;background:var(--bg-subtle);border-radius:14px;padding:12px 16px;margin-top:16px}
+.sumbar span{font-size:13px;color:var(--sub)}
+.sumbar b{font-size:16px;font-weight:650;display:block;margin-top:2px}
+/* fridge */
+.search{height:44px;border-radius:12px;background:var(--bg-subtle);display:flex;align-items:center;gap:8px;padding:0 14px;color:var(--mute);font-size:16px}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);background:var(--bg-subtle);border-radius:12px;padding:3px;margin-top:12px}
+.seg div{height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;gap:4px;font-size:14px;font-weight:500;color:var(--sub)}
+.seg div.on{background:#fff;color:var(--text);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.seg small{font-size:12px;color:var(--mute);font-weight:500}
+.sortline{display:flex;justify-content:space-between;align-items:center;margin:16px 0 2px;font-size:13px;color:var(--sub)}
+.cat{width:36px;height:36px;border-radius:10px;background:var(--bg-subtle);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--sub);font-weight:600;flex:none}
+.qcol{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+/* review */
+.nav{display:flex;align-items:center;gap:6px;padding:6px 0 10px;margin:0 -8px}
+.nav b{font-size:17px;font-weight:650;flex:1;text-align:center;margin-right:40px}
+.thumbs{display:flex;gap:8px;margin-bottom:14px}
+.thumb{width:56px;height:72px;border-radius:8px;background:#F2F3F2;border:1px solid var(--line);padding:7px 6px;display:flex;flex-direction:column;gap:4px}
+.thumb i{height:3px;border-radius:2px;background:#D5D9D5;display:block}
+.info{padding:14px 16px;display:grid;grid-template-columns:1fr auto;row-gap:6px;font-size:14px}
+.info span{color:var(--sub)}
+.info b{font-weight:600;text-align:right}
+.verify{display:flex;align-items:center;gap:8px;margin-top:10px;padding:10px 12px;border-radius:12px;background:var(--green-soft);font-size:13.5px;color:#2F5139;font-weight:500}
+.prog{display:flex;justify-content:space-between;font-size:13px;color:var(--sub);margin:18px 0 8px}
+.item{padding:14px 16px;margin-bottom:10px}
+.item.attn{border-color:#E3C9A0}
+.item .raw{font-size:12.5px;color:var(--sub)}
+.item .match{display:flex;align-items:center;justify-content:space-between;margin-top:4px}
+.item .match b{font-size:16px;font-weight:600;display:flex;align-items:center;gap:6px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin-top:12px;font-size:13.5px}
+.grid2 .k{color:var(--sub);font-size:12px;display:block;margin-bottom:2px}
+.grid2 .v{font-weight:550}
+.grid2 .v small{color:var(--sub);font-weight:500}
+.field-warn{margin-top:10px;display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:10px;background:var(--warn-soft);font-size:13px;color:#8A6220}
+.exp{margin-top:10px;display:flex;align-items:center;justify-content:space-between;padding-top:10px;border-top:1px solid var(--line);font-size:13.5px}
+.exp .k{color:var(--sub)}
+.fixed-bottom{flex:none;padding:12px 20px 34px;border-top:1px solid var(--line);background:#fff}
+.fixed-bottom .hint{font-size:12.5px;color:var(--warn);margin-bottom:8px;display:flex;align-items:center;gap:5px}
+.fixed-bottom .btns{display:grid;grid-template-columns:96px 1fr;gap:8px}
+/* recipe */
+.filter{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.fchip{height:34px;padding:0 12px;border-radius:17px;border:1px solid var(--line);font-size:13.5px;display:inline-flex;align-items:center;gap:4px;color:#3C433E;font-weight:500}
+.fchip.on{background:var(--text);border-color:var(--text);color:#fff}
+.rc{padding:16px;margin-top:12px}
+.rc .why{font-size:12.5px;color:var(--green);font-weight:600;display:flex;align-items:center;gap:4px}
+.rc h3{font-size:18px;font-weight:650;margin-top:6px;letter-spacing:-.01em}
+.rc .sub{font-size:13px;color:var(--sub);margin-top:3px}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+.kpis div span{display:block;font-size:12px;color:var(--sub)}
+.kpis div b{font-size:16px;font-weight:650}
+.kpis div b small{font-size:12px;font-weight:500;color:var(--sub);margin-left:2px}
+.rc .act{display:flex;gap:8px;margin-top:14px}
+.rc .act .btn{flex:1;height:42px}
+.est{font-size:11.5px;color:var(--warn);font-weight:500}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z"/></symbol>
+    <symbol id="i-cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></symbol>
+    <symbol id="i-fridge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="6" y="3" width="12" height="18" rx="2"/><path d="M6 10h12M9 6.5v1.5M9 13v2.5"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z"/><path d="M18.5 16v4M16.5 18h4"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-scan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M8 9h8M8 12h8M8 15h5"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/></symbol>
+    <symbol id="i-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 6l6 6-6 6"/></symbol>
+    <symbol id="i-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 6l-6 6 6 6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 12.5l4 4 9-9"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5.5M12 16.2v.3"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+  </defs>
+</svg>
+
+<div class="row">
+
+<!-- ========== 1. HOME ========== -->
+<div><p class="label">01 홈</p>
+<div class="phone" id="s1">
+  <div class="status"><span>9:41</span><span class="r"><svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg><svg width="27" height="13" viewBox="0 0 27 13"><rect x=".5" y=".5" width="23" height="12" rx="3.5" fill="none" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="20" height="9" rx="2" fill="currentColor"/><rect x="25" y="4.5" width="1.5" height="4" rx=".7" fill="currentColor" opacity=".4"/></svg></span></div>
+  <div class="content">
+    <div class="hdr">
+      <div><p class="eyebrow">11월 3일 화요일</p><h1>오늘</h1></div>
+      <div class="icon-btn"><svg width="22" height="22"><use href="#i-gear"/></svg></div>
+    </div>
+
+    <div class="banner">
+      <svg width="22" height="22" style="color:var(--green)"><use href="#i-scan"/></svg>
+      <div class="t"><b>영수증 분석이 끝났어요</b><span>쿠팡 프레시 · 12개 품목 검수 대기</span></div>
+      <svg width="18" height="18" style="color:#56715D"><use href="#i-right"/></svg>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h2>오늘의 식사</h2><a>식단표</a></div>
+      <div class="card">
+        <div class="meal done"><span class="slot">아침</span>
+          <div class="m"><b>그릭요거트 &amp; 바나나</b><span>원가 1,840원</span></div>
+          <div class="check"><svg width="16" height="16"><use href="#i-check"/></svg></div>
+        </div>
+        <div class="meal"><span class="slot">점심</span>
+          <div class="m"><b>두부 김치볶음 · 현미밥</b><span>예상 2,310원 · 재료 4개</span></div>
+          <button class="btn primary">완료</button>
+        </div>
+        <div class="meal"><span class="slot">저녁</span>
+          <div class="m"><b>연어 스테이크 · 구운 채소</b><span style="color:var(--danger)">재료 1개 부족</span></div>
+          <button class="btn">완료</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h2>곧 소비기한</h2><a>전체 5</a></div>
+      <div>
+        <div class="list-row"><div class="n"><b>두부</b><span>냉장 · 300g</span></div><span class="badge b-warn">소비기한 D-1</span></div>
+        <div class="list-row"><div class="n"><b>우유</b><span>냉장 · 1,200ml</span></div><span class="badge b-warn">소비기한 D-2</span></div>
+        <div class="list-row" style="border:0;padding-bottom:0"><div class="n"><b>시금치</b><span>냉장 · 150g · 기한 정보 없음</span></div><span class="badge b-gray">권장기한 지남</span></div>
+      </div>
+    </div>
+
+    <div class="sumbar" style="margin-top:14px"><div><span>11월 식비</span><b>18,420원</b></div><div style="text-align:right"><span>11월 폐기</span><b>0원</b></div></div>
+  </div>
+  <nav class="tabbar">
+    <div class="tab on"><svg width="24" height="24"><use href="#i-home"/></svg>홈</div>
+    <div class="tab"><svg width="24" height="24"><use href="#i-cal"/></svg>식단</div>
+    <div class="tab"><div class="plus"><svg width="22" height="22"><use href="#i-plus"/></svg></div></div>
+    <div class="tab"><svg width="24" height="24"><use href="#i-fridge"/></svg>냉장고</div>
+    <div class="tab"><svg width="24" height="24"><use href="#i-spark"/></svg>추천</div>
+  </nav>
+  <div class="home-ind"></div>
+</div></div>
+
+<!-- ========== 2. PLANNER ========== -->
+<div><p class="label">02 주간 식단</p>
+<div class="phone" id="s2">
+  <div class="status"><span>9:41</span><span class="r"><svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg><svg width="27" height="13" viewBox="0 0 27 13"><rect x=".5" y=".5" width="23" height="12" rx="3.5" fill="none" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="20" height="9" rx="2" fill="currentColor"/><rect x="25" y="4.5" width="1.5" height="4" rx=".7" fill="currentColor" opacity=".4"/></svg></span></div>
+  <div class="content">
+    <div class="hdr"><h1>식단</h1><div class="icon-btn"><svg width="22" height="22"><use href="#i-plus"/></svg></div></div>
+    <div class="week-nav">
+      <div class="icon-btn"><svg width="20" height="20"><use href="#i-left"/></svg></div>
+      <b>11월 2일 – 11월 8일</b>
+      <div class="icon-btn"><svg width="20" height="20"><use href="#i-right"/></svg></div>
+    </div>
+    <div class="strip">
+      <div class="day">월<b>2</b><span class="dots"><i class="f"></i><i class="f"></i><i class="f"></i></span></div>
+      <div class="day on">화<b>3</b><span class="dots"><i class="f"></i><i></i><i></i></span></div>
+      <div class="day">수<b>4</b><span class="dots"><i></i><i></i><i></i></span></div>
+      <div class="day">목<b>5</b><span class="dots"><i></i><i></i></span></div>
+      <div class="day">금<b>6</b><span class="dots"><i></i></span></div>
+      <div class="day">토<b>7</b><span class="dots"></span></div>
+      <div class="day">일<b>8</b><span class="dots"></span></div>
+    </div>
+
+    <div class="slot-h"><h3>아침</h3><span>완료 · 1,840원</span></div>
+    <div class="card plan">
+      <div class="top" style="align-items:center"><div><b style="color:var(--sub)">그릭요거트 &amp; 바나나</b></div><div class="check"><svg width="16" height="16"><use href="#i-check"/></svg></div></div>
+    </div>
+
+    <div class="slot-h"><h3>점심</h3><span>예상 2,310원</span></div>
+    <div class="card plan">
+      <div class="top"><div><b>두부 김치볶음</b><p class="meta">저장 레시피 · 1인분 · 15분</p></div><span class="badge b-green">재료 충분</span></div>
+      <div class="chips"><span class="chip"><i class="dot"></i>두부 150g</span><span class="chip"><i class="dot"></i>김치 120g</span><span class="chip"><i class="dot"></i>대파 1/2대</span></div>
+    </div>
+    <div class="card plan" style="margin-top:8px;padding:12px 16px">
+      <div class="top" style="align-items:center"><b>현미밥</b><span class="meta" style="margin:0">직접 입력 · 1공기</span></div>
+    </div>
+
+    <div class="slot-h"><h3>저녁</h3><span>예상 6,920원</span></div>
+    <div class="card plan">
+      <div class="top"><div><b>연어 스테이크 · 구운 채소</b><p class="meta">AI 추천 · 1인분 · 25분</p></div><span class="badge b-danger">1개 부족</span></div>
+      <div class="chips"><span class="chip"><i class="dot"></i>연어 180g</span><span class="chip"><i class="dot"></i>애호박 1/2개</span><span class="chip miss">아스파라거스 부족</span></div>
+    </div>
+    
+  </div>
+  <div style="padding:10px 20px 10px;border-top:1px solid var(--line);display:flex;justify-content:space-between;font-size:14px"><span style="color:var(--sub)">이번 주 예상 식비 <b style="color:var(--text);font-weight:650">42,800원</b></span><span style="color:var(--danger);font-weight:600">부족 재료 3개</span></div>
+  <nav class="tabbar">
+    <div class="tab"><svg width="24" height="24"><use href="#i-home"/></svg>홈</div>
+    <div class="tab on"><svg width="24" height="24"><use href="#i-cal"/></svg>식단</div>
+    <div class="tab"><div class="plus"><svg width="22" height="22"><use href="#i-plus"/></svg></div></div>
+    <div class="tab"><svg width="24" height="24"><use href="#i-fridge"/></svg>냉장고</div>
+    <div class="tab"><svg width="24" height="24"><use href="#i-spark"/></svg>추천</div>
+  </nav>
+  <div class="home-ind"></div>
+</div></div>
+
+<!-- ========== 3. FRIDGE ========== -->
+<div><p class="label">03 냉장고</p>
+<div class="phone" id="s3">
+  <div class="status"><span>9:41</span><span class="r"><svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg><svg width="27" height="13" viewBox="0 0 27 13"><rect x=".5" y=".5" width="23" height="12" rx="3.5" fill="none" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="20" height="9" rx="2" fill="currentColor"/><rect x="25" y="4.5" width="1.5" height="4" rx=".7" fill="currentColor" opacity=".4"/></svg></span></div>
+  <div class="content">
+    <div class="hdr"><h1>냉장고</h1><div class="icon-btn"><svg width="22" height="22"><use href="#i-plus"/></svg></div></div>
+    <div class="search"><svg width="18" height="18"><use href="#i-search"/></svg>식재료 검색</div>
+    <div class="seg"><div class="on">냉장 <small>18</small></div><div>냉동 <small>9</small></div><div>실온 <small>14</small></div><div>전체</div></div>
+    <div class="sortline"><span>소비기한 임박순</span><span style="display:flex;align-items:center;gap:2px">정렬<svg width="14" height="14"><use href="#i-down"/></svg></span></div>
+
+    <div class="list-row"><div class="cat">콩류</div><div class="n"><b>두부</b><span>11/1 구매 · 100g당 660원</span></div><div class="qcol"><span class="q">300g</span><span class="badge b-warn">D-1</span></div></div>
+    <div class="list-row"><div class="cat">유제</div><div class="n"><b>우유</b><span>2건 · 11/2 쿠팡 외</span></div><div class="qcol"><span class="q">1,200ml</span><span class="badge b-warn">D-2</span></div></div>
+    <div class="list-row"><div class="cat">채소</div><div class="n"><b>시금치</b><span>10/28 구매 · 기한 정보 없음</span></div><div class="qcol"><span class="q">150g</span><span class="badge b-gray">권장 +1일</span></div></div>
+    <div class="list-row"><div class="cat">채소</div><div class="n"><b>애호박</b><span>11/2 구매 · 기한 정보 없음</span></div><div class="qcol"><span class="q">1개</span><span class="badge b-line">권장 D-4</span></div></div>
+    <div class="list-row"><div class="cat">채소</div><div class="n"><b>대파</b><span>11/2 구매 · 기한 정보 없음</span></div><div class="qcol"><span class="q">2대</span><span class="badge b-line">권장 D-5</span></div></div>
+    <div class="list-row"><div class="cat">유제</div><div class="n"><b>그릭요거트</b><span>11/2 구매 · 100g당 890원</span></div><div class="qcol"><span class="q">400g</span><span class="badge b-green">D-6</span></div></div>
+    <div class="list-row"><div class="cat">란류</div><div class="n"><b>계란</b><span>2건 · 1개당 287원</span></div><div class="qcol"><span class="q">18개</span><span class="badge b-green">D-12</span></div></div>
+    <div class="list-row" style="border:0"><div class="cat">반찬</div><div class="n"><b>김치</b><span>직접 등록 · 가격 정보 없음</span></div><div class="qcol"><span class="q">1.2kg</span><span class="badge b-gray">기한 없음</span></div></div>
+  </div>
+  <nav class="tabbar">
+    <div class="tab"><svg width="24" height="24"><use href="#i-home"/></svg>홈</div>
+    <div class="tab"><svg width="24" height="24"><use href="#i-cal"/></svg>식단</div>
+    <div class="tab"><div class="plus"><svg width="22" height="22"><use href="#i-plus"/></svg></div></div>
+    <div class="tab on"><svg width="24" height="24"><use href="#i-fridge"/></svg>냉장고</div>
+    <div class="tab"><svg width="24" height="24"><use href="#i-spark"/></svg>추천</div>
+  </nav>
+  <div class="home-ind"></div>
+</div></div>
+
+</div><div class="row" style="margin-top:48px">
+
+<!-- ========== 4. REVIEW ========== -->
+<div><p class="label">04 영수증 분석 검수</p>
+<div class="phone" id="s4">
+  <div class="status"><span>9:41</span><span class="r"><svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg><svg width="27" height="13" viewBox="0 0 27 13"><rect x=".5" y=".5" width="23" height="12" rx="3.5" fill="none" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="20" height="9" rx="2" fill="currentColor"/><rect x="25" y="4.5" width="1.5" height="4" rx=".7" fill="currentColor" opacity=".4"/></svg></span></div>
+  <div class="content">
+    <div class="nav"><div class="icon-btn"><svg width="22" height="22"><use href="#i-left"/></svg></div><b>분석 결과 검수</b></div>
+    <div class="thumbs">
+      <div class="thumb"><i style="width:70%"></i><i></i><i style="width:80%"></i><i></i><i style="width:60%"></i><i></i><i style="width:75%"></i></div>
+      <div class="thumb"><i></i><i style="width:65%"></i><i></i><i style="width:85%"></i><i></i><i style="width:55%"></i></div>
+      <div style="display:flex;flex-direction:column;justify-content:center;font-size:12.5px;color:var(--sub);line-height:1.5;margin-left:4px">원본 2장<br>탭해서 비교</div>
+    </div>
+    <div class="card info">
+      <span>구매처</span><b>쿠팡 프레시</b>
+      <span>구매일</span><b>2026. 11. 2</b>
+      <span>결제 금액</span><b>31,200원</b>
+    </div>
+    <div class="verify"><svg width="18" height="18" style="color:var(--green)"><use href="#i-check"/></svg>품목 합계와 결제 금액이 일치해요 (쿠폰 1,500원 배분)</div>
+
+    <div class="prog"><span>12개 품목 · 확인 필요 2</span><span>식품 아님 1</span></div>
+
+    <div class="card item">
+      <p class="raw">서울우유 1A 우유 900ml</p>
+      <div class="match"><b>우유 <span class="badge b-green">자동 매칭</span></b><svg width="18" height="18" style="color:var(--mute)"><use href="#i-right"/></svg></div>
+      <div class="grid2">
+        <div><span class="k">수량</span><span class="v">2 × 900ml <small>= 1,800ml</small></span></div>
+        <div><span class="k">금액 (할인 후)</span><span class="v">3,780원</span></div>
+        <div><span class="k">단위 가격</span><span class="v">100ml당 210원</span></div>
+        <div><span class="k">보관</span><span class="v">냉장</span></div>
+      </div>
+      <div class="exp"><span class="k">소비기한</span><span>11. 14 <span class="badge b-warn" style="margin-left:4px">이미지에서 읽음 · 확인</span></span></div>
+    </div>
+
+    <div class="card item attn">
+      <p class="raw">흙대파 1단</p>
+      <div class="match"><b>대파 <span class="badge b-gray">후보 3</span></b><svg width="18" height="18" style="color:var(--mute)"><use href="#i-right"/></svg></div>
+      <div class="field-warn"><span>용량 표기가 없어요. 총량을 입력해 주세요</span><b>입력</b></div>
+      <div class="exp"><span class="k">소비기한</span><span style="color:var(--sub)">없음 · <b style="color:var(--text);font-weight:600">직접 입력</b></span></div>
+    </div>
+  </div>
+  <div class="fixed-bottom">
+    <p class="hint"><svg width="14" height="14"><use href="#i-alert"/></svg>확인이 필요한 품목 2개를 먼저 처리해 주세요</p>
+    <div class="btns"><button class="btn lg">거절</button><button class="btn lg primary" style="opacity:.45">승인하고 재고 등록 · 11</button></div>
+  </div>
+  <div class="home-ind"></div>
+</div></div>
+
+<!-- ========== 5. RECIPES ========== -->
+<div><p class="label">05 AI 레시피 추천</p>
+<div class="phone" id="s5">
+  <div class="status"><span>9:41</span><span class="r"><svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg><svg width="27" height="13" viewBox="0 0 27 13"><rect x=".5" y=".5" width="23" height="12" rx="3.5" fill="none" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="20" height="9" rx="2" fill="currentColor"/><rect x="25" y="4.5" width="1.5" height="4" rx=".7" fill="currentColor" opacity=".4"/></svg></span></div>
+  <div class="content">
+    <div class="hdr"><h1>추천</h1><span style="font-size:14px;color:var(--sub);font-weight:500">저장한 레시피</span></div>
+    <div class="filter">
+      <span class="fchip on"><svg width="14" height="14"><use href="#i-check"/></svg>임박 재료 우선</span>
+      <span class="fchip on"><svg width="14" height="14"><use href="#i-check"/></svg>가성비</span>
+      <span class="fchip">고단백</span>
+      <span class="fchip">15분 이내</span>
+      <span class="fchip">1인분<svg width="14" height="14"><use href="#i-down"/></svg></span>
+    </div>
+
+    <div class="card rc">
+      <p class="why"><svg width="14" height="14"><use href="#i-clock"/></svg>임박 재료 2개 사용 · 두부, 시금치</p>
+      <h3>두부 시금치 된장국 &amp; 계란말이</h3>
+      <p class="sub">20분 · 재료 5개 모두 보유</p>
+      <div class="chips"><span class="chip"><i class="dot"></i>두부</span><span class="chip"><i class="dot"></i>시금치</span><span class="chip"><i class="dot"></i>계란 2</span><span class="chip"><i class="dot"></i>대파</span><span class="chip"><i class="dot"></i>된장</span></div>
+      <div class="kpis">
+        <div><span>예상 원가</span><b>2,140<small>원</small></b></div>
+        <div><span>열량</span><b>410<small>kcal</small></b></div>
+        <div><span>단백질</span><b>27<small>g</small></b></div>
+      </div>
+      <div class="act"><button class="btn">레시피 보기</button><button class="btn primary">식단에 추가</button></div>
+    </div>
+
+    <div class="card rc">
+      <p class="why"><svg width="14" height="14"><use href="#i-clock"/></svg>임박 재료 1개 사용 · 우유</p>
+      <h3>우유 버섯 리조또</h3>
+      <p class="sub">25분 · 재료 5개 중 4개 보유</p>
+      <div class="chips"><span class="chip"><i class="dot"></i>우유 200ml</span><span class="chip"><i class="dot"></i>현미밥</span><span class="chip"><i class="dot"></i>양파</span><span class="chip miss">양송이 없음</span></div>
+      <div class="kpis">
+        <div><span>예상 원가</span><b>3,050<small>원</small></b><p class="est">일부 최근가 기준</p></div>
+        <div><span>열량</span><b>520<small>kcal</small></b></div>
+        <div><span>단백질</span><b>16<small>g</small></b></div>
+      </div>
+      <div class="act"><button class="btn">레시피 보기</button><button class="btn primary">식단에 추가</button></div>
+    </div>
+  </div>
+  <nav class="tabbar">
+    <div class="tab"><svg width="24" height="24"><use href="#i-home"/></svg>홈</div>
+    <div class="tab"><svg width="24" height="24"><use href="#i-cal"/></svg>식단</div>
+    <div class="tab"><div class="plus"><svg width="22" height="22"><use href="#i-plus"/></svg></div></div>
+    <div class="tab"><svg width="24" height="24"><use href="#i-fridge"/></svg>냉장고</div>
+    <div class="tab on"><svg width="24" height="24"><use href="#i-spark"/></svg>추천</div>
+  </nav>
+  <div class="home-ind"></div>
+</div></div>
+
+</div>
+</body>
+</html>
