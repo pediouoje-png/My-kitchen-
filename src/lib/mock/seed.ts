@@ -229,6 +229,10 @@ export function createSeedState(today: ISODate): KitchenState {
     logs: [],
     meals: [],
     recipes,
+    notes: [
+      { id: "note_1", text: "쿠팡 프레시 주문: 아스파라거스, 우유", tag: "order", done: false, createdAt: 2 },
+      { id: "note_2", text: "계란 6개 삶아두기", tag: "prep", done: false, createdAt: 1 },
+    ],
     settings: { soonDays: 3 },
   };
 

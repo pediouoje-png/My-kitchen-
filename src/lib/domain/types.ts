@@ -126,11 +126,24 @@ export interface KitchenSettings {
   referenceNutritionVersion?: number;
 }
 
+/** 홈 메모: order 주문·장보기 · prep 미리 준비(삶기, 손질 등) · etc 기타 */
+export type NoteTag = "order" | "prep" | "etc";
+
+export interface KitchenNote {
+  id: string;
+  text: string;
+  tag: NoteTag;
+  done: boolean;
+  createdAt: number;
+}
+
 export interface KitchenState {
   ingredients: Ingredient[];
   lots: InventoryLot[];
   logs: ConsumptionLog[];
   meals: MealPlan[];
   recipes: Recipe[];
+  /** 이전 버전 저장 데이터에는 없을 수 있다 */
+  notes?: KitchenNote[];
   settings: KitchenSettings;
 }

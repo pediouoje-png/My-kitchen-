@@ -16,6 +16,7 @@ import { summarizeStock } from "@/lib/domain/stock";
 import { formatQuantity, formatWon, STORAGE_LABEL } from "@/lib/domain/units";
 import type { MealPlan } from "@/lib/domain/types";
 import { useKitchen } from "@/lib/store/kitchen-store";
+import { HomeMemo } from "./HomeMemo";
 import { MEAL_LABEL, MEAL_TYPES, mealCost, mealsOn, monthlySpend } from "@/lib/store/selectors";
 
 export function HomeScreen() {
@@ -132,6 +133,8 @@ export function HomeScreen() {
             })}
           </Card>
         </section>
+
+        <HomeMemo />
 
         <section>
           <SectionHeader

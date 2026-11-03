@@ -5,6 +5,7 @@ import type {
   Ingredient,
   InventoryLot,
   ISODate,
+  KitchenNote,
   KitchenSettings,
   KitchenState,
   MealPlan,
@@ -44,7 +45,11 @@ export type KitchenAction =
   | { type: "updateRecipe"; id: string; patch: Partial<Pick<Recipe, "title" | "description" | "cookMinutes" | "steps" | "saved">> }
   | { type: "linkMealRecipe"; mealId: string; recipeId: string }
   | { type: "updateIngredient"; id: string; patch: Partial<Omit<Ingredient, "id" | "baseUnit">> }
-  | { type: "updateSettings"; settings: Partial<KitchenSettings> };
+  | { type: "updateSettings"; settings: Partial<KitchenSettings> }
+  | { type: "addNote"; note: KitchenNote }
+  | { type: "updateNote"; id: string; patch: Partial<Pick<KitchenNote, "text" | "tag" | "done">> }
+  | { type: "deleteNote"; id: string }
+  | { type: "clearDoneNotes" };
 
 export interface NewMeal {
   id: string;
@@ -325,6 +330,21 @@ export function kitchenReducer(state: KitchenState, action: KitchenAction): Kitc
             );
       return { ...state, lots, ingredients: state.ingredients.map((i) => (i.id === next.id ? next : i)) };
     }
+
+    case "addNote":
+      return { ...state, notes: [action.note, ...(state.notes ?? [])] };
+
+    case "updateNote":
+      return {
+        ...state,
+        notes: (state.notes ?? []).map((n) => (n.id === action.id ? { ...n, ...action.patch } : n)),
+      };
+
+    case "deleteNote":
+      return { ...state, notes: (state.notes ?? []).filter((n) => n.id !== action.id) };
+
+    case "clearDoneNotes":
+      return { ...state, notes: (state.notes ?? []).filter((n) => !n.done) };
 
     case "updateSettings":
       return { ...state, settings: { ...state.settings, ...action.settings } };
