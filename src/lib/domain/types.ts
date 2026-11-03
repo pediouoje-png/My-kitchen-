@@ -6,7 +6,7 @@
 
 export type BaseUnit = "g" | "ml" | "ea";
 export type StorageLocation = "fridge" | "freezer" | "pantry";
-export type MealType = "breakfast" | "lunch" | "dinner";
+export type MealType = "breakfast" | "lunch" | "snack" | "dinner";
 export type ExpirySource = "label" | "user" | "ocr";
 export type ConsumptionReason = "meal" | "manual" | "discard" | "adjust";
 export type LotStatus = "active" | "depleted" | "discarded";

@@ -12,14 +12,10 @@ import { addDays, dayOfMonth, isISODate, monthOf, weekDates, weekdayLabel } from
 import { formatQuantity, formatWon } from "@/lib/domain/units";
 import type { ISODate, MealPlan, MealType } from "@/lib/domain/types";
 import { useKitchen } from "@/lib/store/kitchen-store";
-import { ingredientById, MEAL_LABEL, MEAL_TYPES, mealCost, mealsOn } from "@/lib/store/selectors";
+import { ingredientById, isMealType, MAIN_MEAL_TYPES, MEAL_LABEL, MEAL_TYPES, mealCost, mealsOn } from "@/lib/store/selectors";
 import { AddMealSheet } from "./AddMealSheet";
 import { SOURCE_LABEL } from "./build";
 import { useShortages } from "./useShortages";
-
-function isMealType(v: string | null): v is MealType {
-  return v === "breakfast" || v === "lunch" || v === "dinner";
-}
 
 export function PlannerScreen() {
   const { state, today } = useKitchen();
@@ -126,7 +122,7 @@ export function PlannerScreen() {
                   {dayOfMonth(d)}
                 </b>
                 <span className="flex h-[5px] gap-[3px]">
-                  {meals.slice(0, 3).map((m) => (
+                  {meals.slice(0, 4).map((m) => (
                     <i
                       key={m.id}
                       className={cn(
@@ -172,7 +168,7 @@ export function PlannerScreen() {
 }
 
 function firstEmptySlot(meals: MealPlan[], date: ISODate): MealType {
-  return MEAL_TYPES.find((t) => !meals.some((m) => m.date === date && m.mealType === t)) ?? "dinner";
+  return MAIN_MEAL_TYPES.find((t) => !meals.some((m) => m.date === date && m.mealType === t)) ?? "dinner";
 }
 
 function MealSlot({

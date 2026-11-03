@@ -74,6 +74,7 @@ export function HomeScreen() {
           <Card className="divide-y divide-line">
             {MEAL_TYPES.map((type) => {
               const meals = todayMeals.filter((m) => m.mealType === type);
+              if (meals.length === 0 && type === "snack") return null;
               if (meals.length === 0) {
                 return (
                   <div key={type} className="flex items-center gap-3 py-3.5 pr-3.5 pl-4">

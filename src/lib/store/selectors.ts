@@ -4,8 +4,15 @@ import { sumNutrition } from "@/lib/domain/nutrition";
 import { compareMeals } from "@/lib/domain/stock";
 import type { ISODate, KitchenState, MealPlan, MealType, Recipe } from "@/lib/domain/types";
 
-export const MEAL_TYPES: MealType[] = ["breakfast", "lunch", "dinner"];
-export const MEAL_LABEL: Record<MealType, string> = { breakfast: "아침", lunch: "점심", dinner: "저녁" };
+/** 식단표 끼니 순서 (간식은 점심과 저녁 사이) */
+export const MEAL_TYPES: MealType[] = ["breakfast", "lunch", "snack", "dinner"];
+/** 주 끼니 — 간식은 비어 있어도 홈에 "계획 없음"으로 띄우지 않는다 */
+export const MAIN_MEAL_TYPES: MealType[] = ["breakfast", "lunch", "dinner"];
+export const MEAL_LABEL: Record<MealType, string> = { breakfast: "아침", lunch: "점심", snack: "간식", dinner: "저녁" };
+
+export function isMealType(v: string | null | undefined): v is MealType {
+  return v === "breakfast" || v === "lunch" || v === "snack" || v === "dinner";
+}
 
 export function ingredientById(state: KitchenState, id: string | null | undefined) {
   return id ? state.ingredients.find((i) => i.id === id) : undefined;

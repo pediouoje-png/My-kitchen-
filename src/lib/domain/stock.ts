@@ -49,7 +49,7 @@ export function summarizeStock(
   return result;
 }
 
-const MEAL_ORDER: Record<MealType, number> = { breakfast: 0, lunch: 1, dinner: 2 };
+const MEAL_ORDER: Record<MealType, number> = { breakfast: 0, lunch: 1, snack: 2, dinner: 3 };
 
 export function compareMeals(a: MealPlan, b: MealPlan): number {
   if (a.date !== b.date) return a.date < b.date ? -1 : 1;

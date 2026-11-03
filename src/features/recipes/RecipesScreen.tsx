@@ -12,9 +12,9 @@ import { cn } from "@/lib/cn";
 import { formatShortDate, isISODate } from "@/lib/date";
 import { isUrgent } from "@/lib/domain/expiry";
 import { summarizeStock } from "@/lib/domain/stock";
-import type { MealType, Recipe } from "@/lib/domain/types";
+import type { Recipe } from "@/lib/domain/types";
 import { useKitchen } from "@/lib/store/kitchen-store";
-import { MEAL_LABEL } from "@/lib/store/selectors";
+import { isMealType, MEAL_LABEL } from "@/lib/store/selectors";
 import { RecipeCard } from "./RecipeCard";
 import { buildRecommendation, recommend, type RecommendOptions, type Recommendation } from "./recommend";
 
@@ -27,10 +27,6 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "protein", label: "고단백" },
   { key: "quick", label: "15분 이내" },
 ];
-
-function isMealType(v: string | null): v is MealType {
-  return v === "breakfast" || v === "lunch" || v === "dinner";
-}
 
 export function RecipesScreen() {
   const { state, today } = useKitchen();

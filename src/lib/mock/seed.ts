@@ -196,6 +196,7 @@ const mealSeeds: MealSeed[] = [
   { day: 0, type: "lunch", title: "현미밥", items: [["rice", 1]], source: "manual" },
   { day: 0, type: "dinner", recipe: "r_salmon_steak", source: "ai" },
   { day: 1, type: "breakfast", recipe: "r_yogurt_bowl" },
+  { day: 1, type: "snack", recipe: "r_banana_smoothie", source: "ai" },
   { day: 1, type: "dinner", recipe: "r_shrimp_egg", source: "ai" },
   { day: 2, type: "lunch", recipe: "r_chicken_potato", source: "ai" },
   { day: 3, type: "dinner", title: "시금치 된장국", items: [["spinach", 100], ["tofu", 100], ["doenjang", 20]], source: "manual" },
