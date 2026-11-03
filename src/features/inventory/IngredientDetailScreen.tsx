@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
@@ -16,7 +16,10 @@ import { formatQuantity, formatUnitPrice, formatWon, STORAGE_LABEL, unitLabel } 
 import type { ConsumptionReason, InventoryLot } from "@/lib/domain/types";
 import { useKitchen } from "@/lib/store/kitchen-store";
 import { MEAL_LABEL } from "@/lib/store/selectors";
+import { richMacros } from "@/lib/domain/nutrition";
 import { AddLotSheet } from "./AddLotSheet";
+import { EditIngredientSheet } from "./EditIngredientSheet";
+import { MacroTags } from "./MacroTags";
 import { LotActionSheet, type LotAction } from "./LotActionSheet";
 
 const REASON_LABEL: Record<ConsumptionReason, string> = { meal: "식사", manual: "사용", discard: "폐기", adjust: "되돌림" };
@@ -26,6 +29,7 @@ export function IngredientDetailScreen() {
   const { state, today } = useKitchen();
   const [target, setTarget] = useState<{ lot: InventoryLot; action: LotAction } | null>(null);
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState(false);
   const ing = state.ingredients.find((i) => i.id === ingredientId);
 
   if (!ing) {
@@ -49,6 +53,7 @@ export function IngredientDetailScreen() {
     .filter((l) => l.ingredientId === ing.id)
     .slice(-6)
     .reverse();
+  const rich = richMacros(ing);
   const storageDays = Object.entries(ing.storageDays) as [keyof typeof STORAGE_LABEL, number][];
 
   return (
@@ -57,14 +62,22 @@ export function IngredientDetailScreen() {
         title="식재료"
         fallbackHref="/fridge"
         right={
-          <button type="button" aria-label="재고 추가" onClick={() => setAdding(true)} className="inline-flex h-11 w-11 items-center justify-center rounded-full active:bg-subtle">
-            <Plus size={22} strokeWidth={1.75} />
-          </button>
+          <>
+            <button type="button" aria-label="정보 수정" onClick={() => setEditing(true)} className="inline-flex h-11 w-11 items-center justify-center rounded-full active:bg-subtle">
+              <Pencil size={19} strokeWidth={1.75} />
+            </button>
+            <button type="button" aria-label="재고 추가" onClick={() => setAdding(true)} className="inline-flex h-11 w-11 items-center justify-center rounded-full active:bg-subtle">
+              <Plus size={22} strokeWidth={1.75} />
+            </button>
+          </>
         }
       />
 
       <div className="px-5 pt-1">
-        <p className="text-[14px] text-sub">{ing.category}</p>
+        <button type="button" onClick={() => setEditing(true)} className="text-[14px] text-sub">
+          {ing.category}
+          {ing.category === "기타" && <span className="ml-1 text-green">· 분류 지정</span>}
+        </button>
         <div className="mt-0.5 flex items-baseline justify-between">
           <h1 className="text-[26px] font-bold tracking-[-0.02em]">{ing.name}</h1>
           <span className="text-[22px] font-bold">{formatQuantity(total, ing)}</span>
@@ -158,6 +171,12 @@ export function IngredientDetailScreen() {
 
         <section className="mt-7">
           <SectionHeader title="영양 정보" right={ing.nutrition && <span className="text-[13px] text-sub">{nutritionBasis(ing.nutrition.basis, unitLabel(ing))}</span>} />
+          {rich && rich.length > 0 && (
+            <p className="mb-2.5 flex items-center gap-1.5 text-[13.5px]">
+              <MacroTags macros={rich} size="md" />
+              <span className="text-sub">이 풍부해요</span>
+            </p>
+          )}
           {ing.nutrition ? (
             <div className="grid grid-cols-4 rounded-[14px] bg-subtle px-4 py-3.5 text-center">
               {(
@@ -176,9 +195,9 @@ export function IngredientDetailScreen() {
               ))}
             </div>
           ) : (
-            <p className="rounded-[14px] bg-subtle px-4 py-4 text-[14px] text-sub">
-              영양 정보 없음 — 포장 라벨이나 공공 데이터로 입력할 수 있어요 (다음 단계).
-            </p>
+            <button type="button" onClick={() => setEditing(true)} className="w-full rounded-[14px] bg-subtle px-4 py-4 text-left text-[14px] text-sub active:opacity-80">
+              영양 정보 없음 — <b className="font-semibold text-green">포장 라벨 보고 입력하기</b>
+            </button>
           )}
         </section>
 
@@ -232,6 +251,7 @@ export function IngredientDetailScreen() {
       </div>
 
       <LotActionSheet lot={target?.lot ?? null} action={target?.action ?? null} ingredient={ing} onClose={() => setTarget(null)} />
+      <EditIngredientSheet ingredient={ing} open={editing} onClose={() => setEditing(false)} />
       <AddLotSheet open={adding} onClose={() => setAdding(false)} defaultStorage={ing.defaultStorage} presetIngredientId={ing.id} />
     </div>
   );

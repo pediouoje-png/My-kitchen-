@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRightLeft, BookOpen, Trash2 } from "lucide-react";
+import { ArrowRightLeft, BookmarkPlus, BookOpen, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -19,6 +19,7 @@ import { formatQuantity, formatUnitPrice, formatWon } from "@/lib/domain/units";
 import type { ISODate, MealPlan, MealType } from "@/lib/domain/types";
 import { useKitchen } from "@/lib/store/kitchen-store";
 import { ingredientById, MEAL_LABEL, MEAL_TYPES, mealCost } from "@/lib/store/selectors";
+import { findUserRecipe, recipeFromItems } from "@/features/recipes/fromMeal";
 import { SOURCE_LABEL } from "./build";
 import { CompleteMealSheet } from "./CompleteMealSheet";
 import { useShortages } from "./useShortages";
@@ -77,12 +78,28 @@ export function MealDetailScreen() {
         <p className="mt-1 text-[14px] text-sub">
           {formatShortDate(meal.date)} · {SOURCE_LABEL[meal.source]} · {meal.servings}인분
         </p>
+        {!recipe && (
+          <button
+            type="button"
+            onClick={() => {
+              const same = findUserRecipe(state.recipes, meal.title);
+              const target = same ?? recipeFromItems(meal.title, meal.items, meal.servings, state.ingredients);
+              if (!same) dispatch({ type: "addRecipe", recipe: target });
+              else if (!same.saved) dispatch({ type: "updateRecipe", id: same.id, patch: { saved: true } });
+              dispatch({ type: "linkMealRecipe", mealId: meal.id, recipeId: target.id });
+              toast("내 레시피에 저장했어요", { label: "보기", href: `/recipes/${target.id}` });
+            }}
+            className="mt-3 inline-flex h-9 items-center gap-1.5 rounded-full border border-line px-3.5 text-[14px] font-medium active:bg-subtle"
+          >
+            <BookmarkPlus size={16} strokeWidth={1.75} /> 내 레시피로 저장
+          </button>
+        )}
         {recipe && (
           <Link
             href={`/recipes/${recipe.id}`}
             className="mt-3 inline-flex h-9 items-center gap-1.5 rounded-full border border-line px-3.5 text-[14px] font-medium active:bg-subtle"
           >
-            <BookOpen size={16} strokeWidth={1.75} /> 레시피 보기 · {recipe.cookMinutes}분
+            <BookOpen size={16} strokeWidth={1.75} /> 레시피 보기{recipe.cookMinutes > 0 && ` · ${recipe.cookMinutes}분`}
           </Link>
         )}
 

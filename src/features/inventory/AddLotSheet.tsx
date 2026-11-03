@@ -10,8 +10,10 @@ import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/cn";
 import { formatUnitPrice, STORAGE_LABEL, STORAGE_ORDER } from "@/lib/domain/units";
 import type { BaseUnit, Ingredient, StorageLocation } from "@/lib/domain/types";
+import { guessCategory, suggestStorage } from "@/lib/domain/category";
 import { useKitchen } from "@/lib/store/kitchen-store";
 import { uid } from "@/lib/store/reducer";
+import { CategoryPicker } from "./CategoryPicker";
 
 /** 재고 직접 등록 (선물·텃밭·영수증 없는 구매 등). purchase_item 없이 로트만 생성한다. */
 export function AddLotSheet({
@@ -52,14 +54,26 @@ function AddLotBody({
   const [query, setQuery] = useState("");
   const [ingredientId, setIngredientId] = useState<string | null>(presetIngredientId ?? null);
   const [newUnit, setNewUnit] = useState<BaseUnit>("g");
-  const [qty, setQty] = useState(1);
-  const [storage, setStorage] = useState<StorageLocation>(defaultStorage);
+  const [qty, setQty] = useState(() => {
+    const preset = presetIngredientId ? state.ingredients.find((i) => i.id === presetIngredientId) : undefined;
+    return preset?.baseUnit === "ea" ? 1 : 100;
+  });
+  const [pickedStorage, setPickedStorage] = useState<StorageLocation | null>(null);
+  const [pickedCategory, setPickedCategory] = useState<string | null>(null);
   const [price, setPrice] = useState("");
   const [expiry, setExpiry] = useState("");
 
-  const existing = ingredientId ? state.ingredients.find((i) => i.id === ingredientId) : undefined;
   const name = query.trim();
+  // 이름이 기존 재료와 정확히 같으면 새로 만들지 않고 그 재료를 쓴다
+  const selected = ingredientId ? state.ingredients.find((i) => i.id === ingredientId) : undefined;
+  const exactMatch = selected ? undefined : state.ingredients.find((i) => i.name === name);
+  const existing = selected ?? exactMatch;
   const isNew = !existing && name.length > 0;
+  const guessed = isNew ? guessCategory(name) : null;
+  const category = pickedCategory ?? guessed ?? "기타";
+  const storage: StorageLocation =
+    pickedStorage ?? existing?.defaultStorage ?? (isNew ? suggestStorage(name, category) : null) ?? defaultStorage;
+  const setStorage = setPickedStorage;
   const unitRef: Pick<Ingredient, "baseUnit" | "eaLabel"> = existing ?? { baseUnit: newUnit };
 
   const matches = useMemo(
@@ -69,7 +83,7 @@ function AddLotBody({
 
   const pick = (ing: Ingredient) => {
     setIngredientId(ing.id);
-    setStorage(ing.defaultStorage);
+    setPickedStorage(null);
     setQty(ing.baseUnit === "ea" ? 1 : 100);
   };
 
@@ -83,7 +97,7 @@ function AddLotBody({
       ingId = uid("ing");
       dispatch({
         type: "addIngredient",
-        ingredient: { id: ingId, name, category: "기타", baseUnit: newUnit, defaultStorage: storage, storageDays: {}, nutrition: null },
+        ingredient: { id: ingId, name, category, baseUnit: newUnit, defaultStorage: storage, storageDays: {}, nutrition: null },
       });
     }
     dispatch({
@@ -107,11 +121,18 @@ function AddLotBody({
     <div className="space-y-5 pt-2">
       <div>
         <p className="mb-1.5 text-[13px] text-sub">재료</p>
-        {existing ? (
+        {selected ? (
           <div className="flex h-12 items-center justify-between rounded-xl border border-green bg-green-soft px-4">
-            <b className="text-[16px] font-semibold text-green-ink">{existing.name}</b>
+            <b className="text-[16px] font-semibold text-green-ink">{selected.name}</b>
             {!presetIngredientId && (
-              <button type="button" className="text-[14px] font-medium text-sub" onClick={() => setIngredientId(null)}>
+              <button
+                type="button"
+                className="text-[14px] font-medium text-sub"
+                onClick={() => {
+                  setIngredientId(null);
+                  setQuery("");
+                }}
+              >
                 변경
               </button>
             )}
@@ -136,12 +157,27 @@ function AddLotBody({
                 </button>
               ))}
             </div>
+            {exactMatch && (
+              <p className="mt-2 text-[13px] text-sub">
+                이미 있는 ‘<b className="text-ink">{exactMatch.name}</b>’ 재고로 추가돼요.
+              </p>
+            )}
             {isNew && (
               <div className="mt-3 rounded-xl bg-subtle p-3">
                 <p className="text-[13px] text-sub">
                   ‘<b className="text-ink">{name}</b>’을 새 식재료로 만들어요. 기준 단위를 골라 주세요.
                 </p>
-                <SegmentedControl className="mt-2 bg-bg" label="단위" options={UNIT_OPTIONS} value={newUnit} onChange={setNewUnit} />
+                <SegmentedControl className="mt-2 bg-bg" label="단위" options={UNIT_OPTIONS}
+                  value={newUnit}
+                  onChange={(u) => {
+                    setNewUnit(u);
+                    setQty(u === "ea" ? 1 : 100);
+                  }}
+                />
+                <p className="mt-3 mb-1.5 text-[13px] text-sub">
+                  분류{guessed && !pickedCategory && <span className="text-mute"> · 이름으로 추천했어요</span>}
+                </p>
+                <CategoryPicker value={category} onChange={setPickedCategory} />
               </div>
             )}
           </>

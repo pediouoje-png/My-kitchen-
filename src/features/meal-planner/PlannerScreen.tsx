@@ -237,7 +237,7 @@ function MealCard({ meal, shortage }: { meal: MealPlan; shortage?: Map<string, n
   const { state } = useKitchen();
   const recipe = meal.recipeId ? state.recipes.find((r) => r.id === meal.recipeId) : undefined;
   const lack = meal.status === "planned" ? (shortage?.size ?? 0) : 0;
-  const meta = [SOURCE_LABEL[meal.source], `${meal.servings}인분`, recipe && `${recipe.cookMinutes}분`].filter(Boolean).join(" · ");
+  const meta = [SOURCE_LABEL[meal.source], `${meal.servings}인분`, recipe && recipe.cookMinutes > 0 && `${recipe.cookMinutes}분`].filter(Boolean).join(" · ");
 
   return (
     <Link

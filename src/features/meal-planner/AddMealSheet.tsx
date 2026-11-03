@@ -16,6 +16,8 @@ import type { ISODate, MealType } from "@/lib/domain/types";
 import { useKitchen } from "@/lib/store/kitchen-store";
 import { uid } from "@/lib/store/reducer";
 import { MEAL_LABEL, MEAL_TYPES, recipeCost } from "@/lib/store/selectors";
+import { findUserRecipe, recipeFromItems } from "@/features/recipes/fromMeal";
+import { formatMD } from "@/lib/date";
 import { mealFromRecipe } from "./build";
 
 type Mode = "recipe" | "manual";
@@ -44,6 +46,50 @@ function AddMealBody({ date, initialType, onDone }: { date: ISODate; initialType
   const [mealType, setMealType] = useState<MealType>(initialType);
   const [mode, setMode] = useState<Mode>("recipe");
   const saved = state.recipes.filter((r) => r.saved);
+
+  // 레시피로 저장하지 않은 직접 입력 메뉴 (최근 것 우선, 이름 중복 제거)
+  const recentManual = useMemo(() => {
+    const seen = new Set(saved.map((r) => r.title.trim()));
+    return state.meals
+      .filter((m) => m.source === "manual" && !m.recipeId)
+      .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : b.createdAt - a.createdAt))
+      .filter((m) => {
+        const t = m.title.trim();
+        if (seen.has(t)) return false;
+        seen.add(t);
+        return true;
+      })
+      .slice(0, 6);
+  }, [state.meals, saved]);
+
+  const addAgain = (mealId: string) => {
+    const src = state.meals.find((m) => m.id === mealId);
+    if (!src) return;
+    dispatch({
+      type: "addMeal",
+      meal: {
+        id: uid("meal"),
+        date,
+        mealType,
+        title: src.title,
+        recipeId: null,
+        source: "manual",
+        servings: src.servings,
+        items: src.items.map((i) => ({ id: uid("mi"), ingredientId: i.ingredientId, plannedQuantity: i.plannedQuantity })),
+      },
+    });
+    toast(`${MEAL_LABEL[mealType]}에 추가했어요 · ${src.title}`);
+    onDone();
+  };
+
+  const saveManualAsRecipe = (mealId: string) => {
+    const src = state.meals.find((m) => m.id === mealId);
+    if (!src) return;
+    const recipe = recipeFromItems(src.title, src.items, src.servings, state.ingredients);
+    dispatch({ type: "addRecipe", recipe });
+    dispatch({ type: "linkMealRecipe", mealId: src.id, recipeId: recipe.id });
+    toast(`내 레시피에 저장했어요 · ${src.title}`);
+  };
 
   const addRecipe = (recipeId: string) => {
     const recipe = state.recipes.find((r) => r.id === recipeId);
@@ -77,7 +123,7 @@ function AddMealBody({ date, initialType, onDone }: { date: ISODate; initialType
       <div className="mt-5 flex gap-5 border-b border-line">
         {(
           [
-            ["recipe", "저장한 레시피"],
+            ["recipe", "내 레시피"],
             ["manual", "직접 입력"],
           ] as const
         ).map(([m, label]) => (
@@ -96,6 +142,7 @@ function AddMealBody({ date, initialType, onDone }: { date: ISODate; initialType
       </div>
 
       {mode === "recipe" ? (
+        <>
         <ul className="divide-y divide-line">
           {saved.length === 0 && <li className="py-6 text-center text-[14px] text-sub">저장한 레시피가 없어요</li>}
           {saved.map((r) => {
@@ -110,7 +157,7 @@ function AddMealBody({ date, initialType, onDone }: { date: ISODate; initialType
                   <span className="min-w-0 flex-1">
                     <b className="block truncate text-[15.5px] font-semibold">{r.title}</b>
                     <span className="text-[13px] text-sub">
-                      {r.cookMinutes}분 · 예상 {formatWon(cost.total)}
+                      {r.cookMinutes > 0 && `${r.cookMinutes}분 · `}예상 {formatWon(cost.total)}
                     </span>
                   </span>
                   <span className="text-[14px] font-semibold text-green">추가</span>
@@ -119,6 +166,34 @@ function AddMealBody({ date, initialType, onDone }: { date: ISODate; initialType
             );
           })}
         </ul>
+        {recentManual.length > 0 && (
+          <section className="mt-5">
+            <h3 className="mb-1 text-[13px] font-semibold text-sub">최근 직접 입력한 메뉴</h3>
+            <ul className="divide-y divide-line">
+              {recentManual.map((m) => (
+                <li key={m.id} className="flex items-center gap-2">
+                  <button type="button" onClick={() => addAgain(m.id)} className="flex min-w-0 flex-1 items-center gap-3 py-3 text-left active:bg-subtle">
+                    <span className="min-w-0 flex-1">
+                      <b className="block truncate text-[15px] font-semibold">{m.title}</b>
+                      <span className="text-[12.5px] text-sub">
+                        {formatMD(m.date)} · 재료 {m.items.length}개
+                      </span>
+                    </span>
+                    <span className="text-[14px] font-semibold text-green">추가</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => saveManualAsRecipe(m.id)}
+                    className="h-8 shrink-0 rounded-full border border-line px-2.5 text-[12.5px] font-medium text-sub active:bg-subtle"
+                  >
+                    레시피로 저장
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+        </>
       ) : (
         <ManualMealForm date={date} mealType={mealType} onDone={onDone} />
       )}
@@ -132,6 +207,7 @@ function ManualMealForm({ date, mealType, onDone }: { date: ISODate; mealType: M
   const [title, setTitle] = useState("");
   const [query, setQuery] = useState("");
   const [picked, setPicked] = useState<Record<string, number>>({});
+  const [saveRecipe, setSaveRecipe] = useState(true);
 
   const candidates = useMemo(() => {
     const q = query.trim();
@@ -139,7 +215,7 @@ function ManualMealForm({ date, mealType, onDone }: { date: ISODate; mealType: M
       .filter((i) => !q || i.name.includes(q))
       .map((i) => ({ ing: i, stock: stockOf(state.lots, i.id) }))
       .sort((a, b) => Number(b.stock > 0) - Number(a.stock > 0))
-      .slice(0, 12);
+      .slice(0, q ? 24 : 18);
   }, [state.ingredients, state.lots, query]);
 
   const toggle = (id: string, unit: string) => {
@@ -156,6 +232,21 @@ function ManualMealForm({ date, mealType, onDone }: { date: ISODate; mealType: M
   const save = () => {
     const name = title.trim();
     if (!name) return;
+    const items = Object.entries(picked)
+      .filter(([, q]) => q > 0)
+      .map(([ingredientId, q]) => ({ id: uid("mi"), ingredientId, plannedQuantity: q }));
+    let recipeId: string | null = null;
+    if (saveRecipe) {
+      const same = findUserRecipe(state.recipes, name);
+      if (same) {
+        recipeId = same.id;
+        if (!same.saved) dispatch({ type: "updateRecipe", id: same.id, patch: { saved: true } });
+      } else {
+        const recipe = recipeFromItems(name, items, 1, state.ingredients);
+        dispatch({ type: "addRecipe", recipe });
+        recipeId = recipe.id;
+      }
+    }
     dispatch({
       type: "addMeal",
       meal: {
@@ -163,15 +254,13 @@ function ManualMealForm({ date, mealType, onDone }: { date: ISODate; mealType: M
         date,
         mealType,
         title: name,
-        recipeId: null,
+        recipeId,
         source: "manual",
         servings: 1,
-        items: Object.entries(picked)
-          .filter(([, q]) => q > 0)
-          .map(([ingredientId, q]) => ({ id: uid("mi"), ingredientId, plannedQuantity: q })),
+        items,
       },
     });
-    toast(`${MEAL_LABEL[mealType]}에 추가했어요 · ${name}`);
+    toast(`${MEAL_LABEL[mealType]}에 추가했어요 · ${name}${saveRecipe ? " (내 레시피에도 저장)" : ""}`);
     onDone();
   };
 
@@ -242,7 +331,20 @@ function ManualMealForm({ date, mealType, onDone }: { date: ISODate; mealType: M
         </ul>
       )}
 
-      <Button variant="primary" size="lg" block className="mt-5" disabled={!title.trim()} onClick={save}>
+      <label className="mt-5 flex cursor-pointer items-center gap-2.5 rounded-xl bg-subtle px-3.5 py-3">
+        <input
+          type="checkbox"
+          checked={saveRecipe}
+          onChange={(e) => setSaveRecipe(e.target.checked)}
+          className="h-5 w-5 shrink-0 accent-[var(--color-green)]"
+        />
+        <span className="text-[14px]">
+          <b className="block font-semibold">내 레시피로도 저장</b>
+          <span className="text-[12.5px] text-sub">다음에 ‘내 레시피’에서 바로 다시 추가할 수 있어요</span>
+        </span>
+      </label>
+
+      <Button variant="primary" size="lg" block className="mt-4" disabled={!title.trim()} onClick={save}>
         식단에 추가
       </Button>
     </div>

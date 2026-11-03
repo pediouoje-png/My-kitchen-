@@ -10,6 +10,7 @@ import type {
   MealPlan,
   MealPlanItem,
   MealType,
+  Recipe,
   StorageLocation,
 } from "@/lib/domain/types";
 
@@ -39,6 +40,10 @@ export type KitchenAction =
   | { type: "addLot"; lot: NewLot }
   | { type: "addIngredient"; ingredient: Ingredient }
   | { type: "toggleSaveRecipe"; recipeId: string }
+  | { type: "addRecipe"; recipe: Recipe }
+  | { type: "updateRecipe"; id: string; patch: Partial<Pick<Recipe, "title" | "description" | "cookMinutes" | "steps" | "saved">> }
+  | { type: "linkMealRecipe"; mealId: string; recipeId: string }
+  | { type: "updateIngredient"; id: string; patch: Partial<Omit<Ingredient, "id" | "baseUnit">> }
   | { type: "updateSettings"; settings: Partial<KitchenSettings> };
 
 export interface NewMeal {
@@ -288,6 +293,38 @@ export function kitchenReducer(state: KitchenState, action: KitchenAction): Kitc
         ...state,
         recipes: state.recipes.map((r) => (r.id === action.recipeId ? { ...r, saved: !r.saved } : r)),
       };
+
+    case "addRecipe":
+      if (state.recipes.some((r) => r.id === action.recipe.id)) return state;
+      return { ...state, recipes: [...state.recipes, action.recipe] };
+
+    case "updateRecipe":
+      return {
+        ...state,
+        recipes: state.recipes.map((r) => (r.id === action.id ? { ...r, ...action.patch } : r)),
+      };
+
+    case "linkMealRecipe":
+      return {
+        ...state,
+        meals: state.meals.map((m) => (m.id === action.mealId ? { ...m, recipeId: action.recipeId } : m)),
+      };
+
+    case "updateIngredient": {
+      const before = state.ingredients.find((i) => i.id === action.id);
+      if (!before) return state;
+      const next = { ...before, ...action.patch };
+      // 보관 권장 기간이 바뀌면 활성 로트의 권장기한을 다시 계산한다 (확인된 소비기한은 그대로)
+      const lots =
+        action.patch.storageDays === undefined
+          ? state.lots
+          : state.lots.map((l) =>
+              l.ingredientId === next.id && l.status === "active"
+                ? { ...l, recommendedUseBy: recommendedUseBy(next, l.storage, l.acquiredOn) }
+                : l,
+            );
+      return { ...state, lots, ingredients: state.ingredients.map((i) => (i.id === next.id ? next : i)) };
+    }
 
     case "updateSettings":
       return { ...state, settings: { ...state.settings, ...action.settings } };

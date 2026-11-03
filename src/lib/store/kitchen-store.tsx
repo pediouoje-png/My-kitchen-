@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { todayKST } from "@/lib/date";
+import { guessCategory } from "@/lib/domain/category";
 import type { ISODate, KitchenState } from "@/lib/domain/types";
 import { createSeedState } from "@/lib/mock/seed";
 import { kitchenReducer, type KitchenAction } from "./reducer";
@@ -39,10 +40,25 @@ function readStorage(): KitchenState | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as { state?: KitchenState };
     if (!parsed.state || !Array.isArray(parsed.state.lots)) return null;
-    return parsed.state;
+    return migrate(parsed.state);
   } catch {
     return null;
   }
+}
+
+/**
+ * 이전 버전에서 직접 등록한 재료는 분류가 모두 "기타"로 저장됐다.
+ * 이름 키워드로 분류가 확실히 추정되는 경우에만 바로잡는다.
+ */
+function migrate(state: KitchenState): KitchenState {
+  return {
+    ...state,
+    ingredients: state.ingredients.map((i) => {
+      if (i.category !== "기타") return i;
+      const guess = guessCategory(i.name);
+      return guess ? { ...i, category: guess } : i;
+    }),
+  };
 }
 
 function writeStorage(state: KitchenState) {

@@ -13,7 +13,10 @@ import { summarizeStock, type StockSummary } from "@/lib/domain/stock";
 import { formatQuantity, formatUnitPrice, STORAGE_LABEL, STORAGE_ORDER } from "@/lib/domain/units";
 import type { StorageLocation } from "@/lib/domain/types";
 import { useKitchen } from "@/lib/store/kitchen-store";
+import { richMacros, MACRO_LABEL, type Macro } from "@/lib/domain/nutrition";
 import { AddLotSheet } from "./AddLotSheet";
+import { MacroSummary } from "./MacroSummary";
+import { MacroTags } from "./MacroTags";
 
 type Loc = StorageLocation | "all";
 type Sort = "expiry" | "category" | "recent";
@@ -33,6 +36,7 @@ export function FridgeScreen() {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>("expiry");
   const [adding, setAdding] = useState(false);
+  const [macro, setMacro] = useState<Macro | null>(null);
   const soonDays = state.settings.soonDays;
 
   const counts = useMemo(() => {
@@ -42,17 +46,22 @@ export function FridgeScreen() {
     return c;
   }, [state.ingredients, state.lots, today, soonDays]);
 
+  const scoped = useMemo(
+    () => summarizeStock(state.ingredients, state.lots, today, soonDays, loc === "all" ? undefined : loc),
+    [state.ingredients, state.lots, today, soonDays, loc],
+  );
+
   const rows = useMemo(() => {
     const q = query.trim();
-    const list = summarizeStock(state.ingredients, state.lots, today, soonDays, loc === "all" ? undefined : loc).filter(
-      (s) => !q || s.ingredient.name.includes(q) || s.ingredient.category.includes(q),
-    );
+    const list = scoped
+      .filter((s) => !q || s.ingredient.name.includes(q) || s.ingredient.category.includes(q))
+      .filter((s) => !macro || (richMacros(s.ingredient) ?? []).includes(macro));
     if (sort === "expiry") list.sort((a, b) => a.expiry.sortKey - b.expiry.sortKey || a.ingredient.name.localeCompare(b.ingredient.name, "ko"));
     if (sort === "recent") list.sort((a, b) => (a.lastAcquired < b.lastAcquired ? 1 : a.lastAcquired > b.lastAcquired ? -1 : 0));
     if (sort === "category")
       list.sort((a, b) => a.ingredient.category.localeCompare(b.ingredient.category, "ko") || a.ingredient.name.localeCompare(b.ingredient.name, "ko"));
     return list;
-  }, [state.ingredients, state.lots, today, soonDays, loc, query, sort]);
+  }, [scoped, query, sort, macro]);
 
   return (
     <>
@@ -99,9 +108,25 @@ export function FridgeScreen() {
           ]}
         />
 
+        <MacroSummary
+          stock={scoped}
+          scopeLabel={loc === "all" ? "전체" : STORAGE_LABEL[loc]}
+          selected={macro}
+          onSelect={setMacro}
+        />
+
         <div className="mt-4 mb-0.5 flex items-center justify-between text-[13px] text-sub">
-          <span>
+          <span className="flex min-w-0 items-center gap-1.5">
             {rows.length}개 재료{query && ` · ‘${query}’ 검색`}
+            {macro && (
+              <button
+                type="button"
+                onClick={() => setMacro(null)}
+                className="inline-flex h-7 items-center gap-1 rounded-full bg-ink px-2.5 text-[12.5px] font-medium text-white"
+              >
+                {MACRO_LABEL[macro]} 풍부 <X size={13} />
+              </button>
+            )}
           </span>
           <label className="relative inline-flex h-8 items-center gap-0.5">
             {SORT_LABEL[sort]}
@@ -123,8 +148,14 @@ export function FridgeScreen() {
 
         {rows.length === 0 ? (
           <EmptyState
-            title={query ? "찾는 재료가 없어요" : "비어 있어요"}
-            description={query ? "다른 이름으로 검색해 보세요." : "영수증을 올리거나 직접 등록해 보세요."}
+            title={query || macro ? "찾는 재료가 없어요" : "비어 있어요"}
+            description={
+              macro
+                ? `${MACRO_LABEL[macro]}이 풍부한 재료가 없어요.`
+                : query
+                  ? "다른 이름으로 검색해 보세요."
+                  : "영수증을 올리거나 직접 등록해 보세요."
+            }
           />
         ) : (
           <ul>
@@ -161,7 +192,10 @@ function InventoryRow({ s, showLocation }: { s: StockSummary; showLocation: bool
         {s.ingredient.category.slice(0, 2)}
       </span>
       <span className="min-w-0 flex-1">
-        <b className="block truncate text-[16px] font-semibold">{s.ingredient.name}</b>
+        <span className="flex min-w-0 items-center gap-1.5">
+          <b className="truncate text-[16px] font-semibold">{s.ingredient.name}</b>
+          <MacroTags macros={richMacros(s.ingredient) ?? []} className="shrink-0" />
+        </span>
         <span className="block truncate text-[13px] text-sub">
           {showLocation && `${locs} · `}
           {detail} · {tail}

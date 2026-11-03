@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark } from "lucide-react";
+import { Bookmark, Pencil } from "lucide-react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -15,6 +15,7 @@ import { stockOf } from "@/lib/domain/stock";
 import { formatQuantity, formatWon } from "@/lib/domain/units";
 import { useKitchen } from "@/lib/store/kitchen-store";
 import { ingredientById, scaledRecipeNeeds } from "@/lib/store/selectors";
+import { EditRecipeSheet } from "./EditRecipeSheet";
 import { buildRecommendation } from "./recommend";
 
 export function RecipeDetailScreen() {
@@ -25,6 +26,7 @@ export function RecipeDetailScreen() {
   const initial = Math.min(3, Math.max(1, Number(params.get("servings")) || 1));
   const [servings, setServings] = useState(String(initial));
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState(false);
   const recipe = state.recipes.find((r) => r.id === recipeId);
 
   if (!recipe) {
@@ -46,6 +48,17 @@ export function RecipeDetailScreen() {
         title="레시피"
         fallbackHref="/recipes"
         right={
+          <>
+          {recipe.source === "user" && (
+            <button
+              type="button"
+              aria-label="레시피 수정"
+              onClick={() => setEditing(true)}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full active:bg-subtle"
+            >
+              <Pencil size={19} strokeWidth={1.75} />
+            </button>
+          )}
           <button
             type="button"
             aria-label={recipe.saved ? "저장 취소" : "레시피 저장"}
@@ -58,15 +71,16 @@ export function RecipeDetailScreen() {
           >
             <Bookmark size={21} strokeWidth={1.75} className={recipe.saved ? "fill-green text-green" : undefined} />
           </button>
+          </>
         }
       />
 
       <div className="px-5 pt-1">
         <p className="text-[13px] text-sub">
-          {recipe.source === "ai" ? "AI 추천 예시" : "내 레시피"} · {recipe.cookMinutes}분 · {recipe.tags.join(" · ")}
+          {[recipe.source === "ai" ? "AI 추천 예시" : "내 레시피", recipe.cookMinutes > 0 && `${recipe.cookMinutes}분`, ...recipe.tags].filter(Boolean).join(" · ")}
         </p>
         <h1 className="mt-1 text-[24px] leading-snug font-bold tracking-[-0.02em]">{recipe.title}</h1>
-        <p className="mt-1.5 text-[14.5px] leading-relaxed text-sub">{recipe.description}</p>
+        {recipe.description && <p className="mt-1.5 text-[14.5px] leading-relaxed text-sub">{recipe.description}</p>}
 
         <SegmentedControl
           className="mt-5"
@@ -124,6 +138,15 @@ export function RecipeDetailScreen() {
         </ul>
 
         <h2 className="mt-7 mb-2 text-[17px] font-semibold">조리 순서</h2>
+        {recipe.steps.length === 0 && (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="w-full rounded-[14px] bg-subtle px-4 py-4 text-left text-[14px] text-sub active:opacity-80"
+          >
+            조리 순서를 아직 적지 않았어요 — <b className="font-semibold text-green">지금 적기</b>
+          </button>
+        )}
         <ol className="space-y-3.5">
           {recipe.steps.map((step, i) => (
             <li key={i} className="flex gap-3">
@@ -142,6 +165,7 @@ export function RecipeDetailScreen() {
         </Button>
       </div>
 
+      <EditRecipeSheet recipe={recipe} open={editing} onClose={() => setEditing(false)} />
       <AddToPlanSheet recipe={recipe} open={adding} onClose={() => setAdding(false)} initialServings={n} />
     </div>
   );

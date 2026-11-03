@@ -38,7 +38,7 @@ export function RecipeCard({ rec, servings, onAdd }: { rec: Recommendation; serv
       <Link href={`/recipes/${recipe.id}?servings=${servings}`} className="block">
         <h3 className="-mt-1 text-[18px] font-semibold tracking-[-0.01em]">{recipe.title}</h3>
         <p className="mt-0.5 text-[13px] text-sub">
-          {recipe.cookMinutes}분 · {rec.missing.length === 0 ? `재료 ${total}개 모두 보유` : `재료 ${total}개 중 ${rec.owned.length}개 보유`}
+          {recipe.cookMinutes > 0 && `${recipe.cookMinutes}분 · `}{rec.missing.length === 0 ? `재료 ${total}개 모두 보유` : `재료 ${total}개 중 ${rec.owned.length}개 보유`}
         </p>
       </Link>
       <div className="mt-2.5 flex flex-wrap gap-1.5">
