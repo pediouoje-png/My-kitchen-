@@ -53,12 +53,24 @@ export function HomeScreen() {
       />
 
       <div className="space-y-7 px-5">
-        <Link href="/scan" className="flex items-center gap-3 rounded-[14px] bg-green-soft py-3.5 pr-3.5 pl-4 active:opacity-80">
+        <Link
+          href={state.pendingAnalysis ? "/scan/review" : "/scan"}
+          className="flex items-center gap-3 rounded-[14px] bg-green-soft py-3.5 pr-3.5 pl-4 active:opacity-80"
+        >
           <ScanLine size={22} className="shrink-0 text-green" strokeWidth={1.75} />
-          <span className="min-w-0 flex-1">
-            <b className="block text-[15px] font-semibold text-green-ink">장 보고 오셨나요?</b>
-            <span className="text-[13px] text-[#56715d]">영수증을 찍으면 재고에 바로 등록돼요</span>
-          </span>
+          {state.pendingAnalysis ? (
+            <span className="min-w-0 flex-1">
+              <b className="block text-[15px] font-semibold text-green-ink">영수증 분석이 끝났어요</b>
+              <span className="text-[13px] text-[#56715d]">
+                {state.pendingAnalysis.storeName || "구매 내역"} · {state.pendingAnalysis.items.length}개 품목 검수 대기
+              </span>
+            </span>
+          ) : (
+            <span className="min-w-0 flex-1">
+              <b className="block text-[15px] font-semibold text-green-ink">장 보고 오셨나요?</b>
+              <span className="text-[13px] text-[#56715d]">영수증·쿠팡 주문내역을 찍으면 재고에 바로 등록돼요</span>
+            </span>
+          )}
           <ChevronRight size={18} className="text-[#56715d]" />
         </Link>
 

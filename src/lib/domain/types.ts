@@ -42,6 +42,8 @@ export interface Ingredient {
   storageDays: Partial<Record<StorageLocation, number>>;
   /** null = 정보 없음 (0과 구분) */
   nutrition: Nutrition | null;
+  /** 영수증 표기 별칭 — 승인할 때마다 학습해서 다음 분석의 자동 매칭에 쓴다 */
+  aliases?: string[];
 }
 
 export interface InventoryLot {
@@ -137,6 +139,76 @@ export interface KitchenNote {
   createdAt: number;
 }
 
+/** 구매 내역 (영수증 1장 = 1건) — purchase_records + purchase_items */
+export interface PurchaseItem {
+  rawName: string;
+  ingredientId: string | null;
+  isFood: boolean;
+  /** 기준 단위 총량 (식품만) */
+  quantity: number | null;
+  /** 할인 반영 최종 금액 (원) */
+  finalPrice: number;
+  /** 원 / 기준단위 */
+  unitCost: number | null;
+  lotId: string | null;
+}
+
+export interface PurchaseRecord {
+  id: string;
+  source: "receipt" | "coupang" | "online" | "manual";
+  storeName: string | null;
+  purchasedOn: ISODate;
+  orderNumber: string | null;
+  discountTotal: number;
+  deliveryFee: number;
+  totalPaid: number | null;
+  items: PurchaseItem[];
+  createdAt: number;
+}
+
+/** 검수 중인 분석 결과 (image_analysis.draft) */
+export interface DraftItem {
+  id: string;
+  rawName: string;
+  include: boolean;
+  isFood: boolean;
+  /** 기존 식재료 연결 */
+  ingredientId: string | null;
+  /** 새 식재료로 만들 때의 이름 · 단위 · 분류 */
+  newName: string;
+  newUnit: BaseUnit;
+  newCategory: string;
+  matchedBy: "alias" | "exact" | "contains" | "user" | null;
+  /** 기준 단위 총량. null = 확인 필요 */
+  quantity: number | null;
+  /** 이미지에 적힌 수량 표기 (예: 2 × 900ml) */
+  quantityText: string;
+  linePrice: number;
+  lineDiscount: number;
+  /** 주문 전체 할인 배분액 (코드 계산) */
+  allocatedDiscount: number;
+  storage: StorageLocation;
+  expiryDate: ISODate | null;
+  /** 이미지에서 읽은 소비기한인지 (사용자 확인 필요) */
+  expiryFromImage: boolean;
+  confidence: "high" | "medium" | "low";
+}
+
+export interface AnalysisDraft {
+  id: string;
+  source: "receipt" | "coupang" | "online";
+  storeName: string;
+  purchasedOn: ISODate;
+  orderNumber: string | null;
+  discountTotal: number;
+  deliveryFee: number;
+  totalPaid: number | null;
+  items: DraftItem[];
+  notes: string | null;
+  model: string | null;
+  createdAt: number;
+}
+
 export interface KitchenState {
   ingredients: Ingredient[];
   lots: InventoryLot[];
@@ -145,5 +217,8 @@ export interface KitchenState {
   recipes: Recipe[];
   /** 이전 버전 저장 데이터에는 없을 수 있다 */
   notes?: KitchenNote[];
+  purchases?: PurchaseRecord[];
+  /** 검수 대기 중인 이미지 분석 (승인 전에는 재고에 반영되지 않는다) */
+  pendingAnalysis?: AnalysisDraft | null;
   settings: KitchenSettings;
 }

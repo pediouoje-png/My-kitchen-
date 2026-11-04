@@ -58,6 +58,7 @@ export function MealDetailScreen() {
   const logs = state.logs.filter((l) => l.mealPlanId === meal.id && l.reason === "meal");
 
   const remove = () => {
+    setConfirmDelete(false);
     dispatch({ type: "deleteMeal", mealId: meal.id });
     toast("식단에서 삭제했어요");
     router.replace(`/planner?date=${meal.date}`);

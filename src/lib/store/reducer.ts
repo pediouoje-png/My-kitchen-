@@ -1,11 +1,16 @@
 import { addDays } from "@/lib/date";
 import { allocateFIFO } from "@/lib/domain/costing";
+import { findReferenceNutrition } from "@/lib/domain/reference-nutrition";
+import { blockingIssues, itemFinalPrice, itemUnitCost } from "@/lib/receipt/draft";
 import type {
   ConsumptionLog,
   Ingredient,
   InventoryLot,
   ISODate,
+  AnalysisDraft,
   KitchenNote,
+  PurchaseItem,
+  PurchaseRecord,
   KitchenSettings,
   KitchenState,
   MealPlan,
@@ -49,7 +54,9 @@ export type KitchenAction =
   | { type: "addNote"; note: KitchenNote }
   | { type: "updateNote"; id: string; patch: Partial<Pick<KitchenNote, "text" | "tag" | "done">> }
   | { type: "deleteNote"; id: string }
-  | { type: "clearDoneNotes" };
+  | { type: "clearDoneNotes" }
+  | { type: "setAnalysisDraft"; draft: AnalysisDraft | null }
+  | { type: "approvePurchase"; draft: AnalysisDraft };
 
 export interface NewMeal {
   id: string;
@@ -346,7 +353,117 @@ export function kitchenReducer(state: KitchenState, action: KitchenAction): Kitc
     case "clearDoneNotes":
       return { ...state, notes: (state.notes ?? []).filter((n) => !n.done) };
 
+    case "setAnalysisDraft":
+      return { ...state, pendingAnalysis: action.draft };
+
+    case "approvePurchase":
+      return approvePurchase(state, action.draft);
+
     case "updateSettings":
       return { ...state, settings: { ...state.settings, ...action.settings } };
   }
+}
+
+/**
+ * 분석 결과 승인 = 구매 내역 + 품목 + 재고 로트 + 별칭 학습을 한 번에 반영 (DB 단계: approve_purchase() 트랜잭션).
+ * 확인이 필요한 품목이 하나라도 남아 있으면 아무것도 바꾸지 않는다.
+ */
+function approvePurchase(state: KitchenState, draft: AnalysisDraft): KitchenState {
+  const included = draft.items.filter((i) => i.include);
+  if (included.some((i) => blockingIssues(i).length > 0)) return state;
+
+  let ingredients = state.ingredients;
+  const lots: InventoryLot[] = [];
+  const purchaseItems: PurchaseItem[] = [];
+  const sourceLabel = draft.storeName.trim() || (draft.source === "coupang" ? "쿠팡 프레시" : "영수증");
+
+  for (const item of included) {
+    if (!item.isFood) {
+      purchaseItems.push({
+        rawName: item.rawName || item.newName,
+        ingredientId: null,
+        isFood: false,
+        quantity: null,
+        finalPrice: itemFinalPrice(item),
+        unitCost: null,
+        lotId: null,
+      });
+      continue;
+    }
+
+    // 1) 식재료: 기존 연결 → 같은 이름 → 새로 생성
+    let ing = item.ingredientId ? ingredients.find((i) => i.id === item.ingredientId) : undefined;
+    if (!ing) ing = ingredients.find((i) => i.name === item.newName.trim());
+    if (!ing) {
+      const name = item.newName.trim();
+      const ref = findReferenceNutrition(name, item.newUnit);
+      ing = {
+        id: uid("ing"),
+        name,
+        category: item.newCategory,
+        baseUnit: item.newUnit,
+        defaultStorage: item.storage,
+        storageDays: {},
+        nutrition: ref?.nutrition ?? null,
+        gramsPerEa: ref?.gramsPerEa,
+        aliases: [],
+      };
+      ingredients = [...ingredients, ing];
+    }
+    // 2) 영수증 표기를 별칭으로 학습 → 다음 분석에서 자동 연결
+    const raw = item.rawName.trim();
+    if (raw && raw !== ing.name && !(ing.aliases ?? []).includes(raw)) {
+      const learned = { ...ing, aliases: [...(ing.aliases ?? []), raw] };
+      ingredients = ingredients.map((i) => (i.id === learned.id ? learned : i));
+      ing = learned;
+    }
+
+    // 3) 구매 건별 재고 로트 (단가는 입고 시점에 고정)
+    const unitCost = itemUnitCost(item);
+    const lot: InventoryLot = {
+      id: uid("lot"),
+      ingredientId: ing.id,
+      storage: item.storage,
+      qtyInitial: item.quantity!,
+      qtyRemaining: item.quantity!,
+      unitCost,
+      acquiredOn: draft.purchasedOn,
+      expiryDate: item.expiryDate,
+      expirySource: item.expiryDate ? (item.expiryFromImage ? "ocr" : "user") : null,
+      recommendedUseBy: recommendedUseBy(ing, item.storage, draft.purchasedOn),
+      status: "active",
+      sourceLabel,
+    };
+    lots.push(lot);
+    purchaseItems.push({
+      rawName: raw || ing.name,
+      ingredientId: ing.id,
+      isFood: true,
+      quantity: item.quantity,
+      finalPrice: itemFinalPrice(item),
+      unitCost,
+      lotId: lot.id,
+    });
+  }
+
+  const record: PurchaseRecord = {
+    id: uid("pur"),
+    source: draft.source,
+    storeName: draft.storeName.trim() || null,
+    purchasedOn: draft.purchasedOn,
+    orderNumber: draft.orderNumber,
+    discountTotal: draft.discountTotal,
+    deliveryFee: draft.deliveryFee,
+    totalPaid: draft.totalPaid,
+    items: purchaseItems,
+    createdAt: Date.now(),
+  };
+
+  return {
+    ...state,
+    ingredients,
+    lots: [...state.lots, ...lots],
+    purchases: [record, ...(state.purchases ?? [])],
+    pendingAnalysis: state.pendingAnalysis?.id === draft.id ? null : state.pendingAnalysis,
+  };
 }
