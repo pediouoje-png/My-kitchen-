@@ -8,7 +8,9 @@ import { ExpiryBadge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/misc";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { cn } from "@/lib/cn";
 import { formatMD } from "@/lib/date";
+import { CATEGORIES } from "@/lib/domain/category";
 import { summarizeStock, type StockSummary } from "@/lib/domain/stock";
 import { formatQuantity, formatUnitPrice, STORAGE_LABEL, STORAGE_ORDER } from "@/lib/domain/units";
 import type { StorageLocation } from "@/lib/domain/types";
@@ -33,6 +35,10 @@ export function FridgeScreen() {
   const params = useSearchParams();
   const locParam = params.get("location");
   const loc: Loc = isLoc(locParam) ? locParam : "fridge";
+  // 분류 필터 (과일 · 채소 · 유제품 …) — 주소에 남겨 뒤로 가기에도 유지
+  const cat = params.get("cat");
+  const go = (nextLoc: Loc, nextCat: string | null) =>
+    router.replace(`/fridge?location=${nextLoc}${nextCat ? `&cat=${encodeURIComponent(nextCat)}` : ""}`, { scroll: false });
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>("expiry");
   const [adding, setAdding] = useState(false);
@@ -51,9 +57,22 @@ export function FridgeScreen() {
     [state.ingredients, state.lots, today, soonDays, loc],
   );
 
+  // 지금 보관 위치에 있는 분류와 개수 (분류 순서는 CATEGORIES 기준)
+  const categories = useMemo(() => {
+    const count = new Map<string, number>();
+    for (const s of scoped) count.set(s.ingredient.category, (count.get(s.ingredient.category) ?? 0) + 1);
+    const order = (c: string) => {
+      const i = (CATEGORIES as readonly string[]).indexOf(c);
+      return i < 0 ? CATEGORIES.length - 1 : i;
+    };
+    return [...count.entries()].sort((a, b) => order(a[0]) - order(b[0]) || a[0].localeCompare(b[0], "ko"));
+  }, [scoped]);
+
+  const inCategory = useMemo(() => (cat ? scoped.filter((s) => s.ingredient.category === cat) : scoped), [scoped, cat]);
+
   const rows = useMemo(() => {
     const q = query.trim();
-    const list = scoped
+    const list = inCategory
       .filter((s) => !q || s.ingredient.name.includes(q) || s.ingredient.category.includes(q))
       .filter((s) => !macro || (richMacros(s.ingredient) ?? []).includes(macro));
     if (sort === "expiry") list.sort((a, b) => a.expiry.sortKey - b.expiry.sortKey || a.ingredient.name.localeCompare(b.ingredient.name, "ko"));
@@ -61,7 +80,7 @@ export function FridgeScreen() {
     if (sort === "category")
       list.sort((a, b) => a.ingredient.category.localeCompare(b.ingredient.category, "ko") || a.ingredient.name.localeCompare(b.ingredient.name, "ko"));
     return list;
-  }, [scoped, query, sort, macro]);
+  }, [inCategory, query, sort, macro]);
 
   return (
     <>
@@ -101,16 +120,43 @@ export function FridgeScreen() {
           className="mt-3"
           label="보관 위치"
           value={loc}
-          onChange={(v) => router.replace(`/fridge?location=${v}`, { scroll: false })}
+          onChange={(v) => go(v, cat)}
           options={[
             ...STORAGE_ORDER.map((l) => ({ value: l as Loc, label: STORAGE_LABEL[l], count: counts[l] })),
             { value: "all" as Loc, label: "전체" },
           ]}
         />
 
+        {categories.length > 0 && (
+          <div role="tablist" aria-label="분류" className="no-scrollbar -mx-5 mt-3 flex gap-1.5 overflow-x-auto px-5">
+            {[["전체", scoped.length] as [string, number], ...categories, ...(cat && !categories.some(([c]) => c === cat) ? [[cat, 0] as [string, number]] : [])].map(
+              ([c, n]) => {
+                const value = c === "전체" ? null : c;
+                const on = value === cat;
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    role="tab"
+                    aria-selected={on}
+                    onClick={() => go(loc, value)}
+                    className={cn(
+                      "inline-flex h-9 shrink-0 items-center gap-1 rounded-full border px-3.5 text-[14px] transition-colors",
+                      on ? "border-ink bg-ink font-semibold text-white" : "border-line text-ink active:bg-subtle",
+                    )}
+                  >
+                    {c}
+                    <span className={cn("text-[12px] font-medium", on ? "text-[#c9cec9]" : "text-mute")}>{n}</span>
+                  </button>
+                );
+              },
+            )}
+          </div>
+        )}
+
         <MacroSummary
-          stock={scoped}
-          scopeLabel={loc === "all" ? "전체" : STORAGE_LABEL[loc]}
+          stock={inCategory}
+          scopeLabel={`${loc === "all" ? "전체" : STORAGE_LABEL[loc]}${cat ? ` · ${cat}` : ""}`}
           selected={macro}
           onSelect={setMacro}
         />
@@ -148,9 +194,11 @@ export function FridgeScreen() {
 
         {rows.length === 0 ? (
           <EmptyState
-            title={query || macro ? "찾는 재료가 없어요" : "비어 있어요"}
+            title={query || macro || cat ? "찾는 재료가 없어요" : "비어 있어요"}
             description={
-              macro
+              cat && !query && !macro
+                ? `${loc === "all" ? "" : `${STORAGE_LABEL[loc]}에 `}${cat} 재료가 없어요.`
+                : macro
                 ? `${MACRO_LABEL[macro]}이 풍부한 재료가 없어요.`
                 : query
                   ? "다른 이름으로 검색해 보세요."
