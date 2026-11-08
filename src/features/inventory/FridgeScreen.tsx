@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Plus, Search, X } from "lucide-react";
+import { ChevronDown, Plus, Search, Share, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Fragment, useMemo, useState } from "react";
@@ -17,6 +17,7 @@ import type { StorageLocation } from "@/lib/domain/types";
 import { useKitchen } from "@/lib/store/kitchen-store";
 import { richMacros, MACRO_LABEL, type Macro } from "@/lib/domain/nutrition";
 import { AddLotSheet } from "./AddLotSheet";
+import { ExportSheet } from "./ExportSheet";
 import { MacroSummary } from "./MacroSummary";
 import { MacroTags } from "./MacroTags";
 
@@ -42,6 +43,7 @@ export function FridgeScreen() {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>("expiry");
   const [adding, setAdding] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [macro, setMacro] = useState<Macro | null>(null);
   const soonDays = state.settings.soonDays;
 
@@ -87,14 +89,24 @@ export function FridgeScreen() {
       <PageHeader
         title="냉장고"
         right={
-          <button
-            type="button"
-            aria-label="재료 직접 등록"
-            onClick={() => setAdding(true)}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full active:bg-subtle"
-          >
-            <Plus size={24} strokeWidth={1.75} />
-          </button>
+          <>
+            <button
+              type="button"
+              aria-label="재고 내보내기"
+              onClick={() => setExporting(true)}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full active:bg-subtle"
+            >
+              <Share size={21} strokeWidth={1.75} />
+            </button>
+            <button
+              type="button"
+              aria-label="재료 직접 등록"
+              onClick={() => setAdding(true)}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full active:bg-subtle"
+            >
+              <Plus size={24} strokeWidth={1.75} />
+            </button>
+          </>
         }
       />
 
@@ -221,6 +233,7 @@ export function FridgeScreen() {
         )}
       </div>
 
+      <ExportSheet open={exporting} onClose={() => setExporting(false)} location={loc} category={cat} />
       <AddLotSheet open={adding} onClose={() => setAdding(false)} defaultStorage={loc === "all" ? "fridge" : loc} />
     </>
   );
