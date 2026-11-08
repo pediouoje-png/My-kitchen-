@@ -55,6 +55,7 @@ export type KitchenAction =
   | { type: "updateNote"; id: string; patch: Partial<Pick<KitchenNote, "text" | "tag" | "done">> }
   | { type: "deleteNote"; id: string }
   | { type: "clearDoneNotes" }
+  | { type: "deleteIngredient"; id: string }
   | { type: "setAnalysisDraft"; draft: AnalysisDraft | null }
   | { type: "approvePurchase"; draft: AnalysisDraft };
 
@@ -353,6 +354,9 @@ export function kitchenReducer(state: KitchenState, action: KitchenAction): Kitc
     case "clearDoneNotes":
       return { ...state, notes: (state.notes ?? []).filter((n) => !n.done) };
 
+    case "deleteIngredient":
+      return deleteIngredient(state, action.id);
+
     case "setAnalysisDraft":
       return { ...state, pendingAnalysis: action.draft };
 
@@ -465,5 +469,56 @@ function approvePurchase(state: KitchenState, draft: AnalysisDraft): KitchenStat
     lots: [...state.lots, ...lots],
     purchases: [record, ...(state.purchases ?? [])],
     pendingAnalysis: state.pendingAnalysis?.id === draft.id ? null : state.pendingAnalysis,
+  };
+}
+
+/** 식재료 삭제가 미치는 영향 (확인 화면에 보여준다) */
+export function ingredientUsage(state: KitchenState, id: string) {
+  const lots = state.lots.filter((l) => l.ingredientId === id && l.status === "active" && l.qtyRemaining > 0);
+  return {
+    activeLots: lots.length,
+    stock: lots.reduce((s, l) => s + l.qtyRemaining, 0),
+    plannedMeals: state.meals.filter((m) => m.status !== "done" && m.items.some((i) => i.ingredientId === id)).length,
+    recipes: state.recipes.filter((r) => r.ingredients.some((i) => i.ingredientId === id)).length,
+    logs: state.logs.filter((l) => l.ingredientId === id).length,
+  };
+}
+
+/**
+ * 식재료 삭제 (잘못 입력한 재료 정리용).
+ * - 식재료와 그 재고 로트를 지운다.
+ * - 아직 먹지 않은 식단에서는 이 재료를 뺀다. 완료한 식사는 기록이므로 그대로 둔다.
+ * - 레시피·구매 내역·검수 중인 분석에는 이름만 남기고 연결을 끊는다.
+ * - 소비 기록(식비·폐기 금액)은 실제로 쓴 돈이므로 지우지 않는다.
+ */
+function deleteIngredient(state: KitchenState, id: string): KitchenState {
+  if (!state.ingredients.some((i) => i.id === id)) return state;
+  const removedLotIds = new Set(state.lots.filter((l) => l.ingredientId === id).map((l) => l.id));
+  return {
+    ...state,
+    ingredients: state.ingredients.filter((i) => i.id !== id),
+    lots: state.lots.filter((l) => l.ingredientId !== id),
+    meals: state.meals.map((m) =>
+      m.status === "done" || !m.items.some((i) => i.ingredientId === id)
+        ? m
+        : { ...m, items: m.items.filter((i) => i.ingredientId !== id) },
+    ),
+    recipes: state.recipes.map((r) =>
+      r.ingredients.some((i) => i.ingredientId === id)
+        ? { ...r, ingredients: r.ingredients.map((i) => (i.ingredientId === id ? { ...i, ingredientId: null } : i)) }
+        : r,
+    ),
+    purchases: state.purchases?.map((p) => ({
+      ...p,
+      items: p.items.map((i) =>
+        i.ingredientId === id || (i.lotId && removedLotIds.has(i.lotId)) ? { ...i, ingredientId: null, lotId: null } : i,
+      ),
+    })),
+    pendingAnalysis: state.pendingAnalysis
+      ? {
+          ...state.pendingAnalysis,
+          items: state.pendingAnalysis.items.map((i) => (i.ingredientId === id ? { ...i, ingredientId: null, matchedBy: null } : i)),
+        }
+      : state.pendingAnalysis,
   };
 }

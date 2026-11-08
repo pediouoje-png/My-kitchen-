@@ -2,7 +2,7 @@
 
 import { Pencil, Plus } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { ExpiryBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -30,6 +30,7 @@ export function IngredientDetailScreen() {
   const [target, setTarget] = useState<{ lot: InventoryLot; action: LotAction } | null>(null);
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState(false);
+  const router = useRouter();
   const ing = state.ingredients.find((i) => i.id === ingredientId);
 
   if (!ing) {
@@ -260,7 +261,16 @@ export function IngredientDetailScreen() {
       </div>
 
       <LotActionSheet lot={target?.lot ?? null} action={target?.action ?? null} ingredient={ing} onClose={() => setTarget(null)} />
-      <EditIngredientSheet ingredient={ing} open={editing} onClose={() => setEditing(false)} />
+      <EditIngredientSheet
+        ingredient={ing}
+        open={editing}
+        onClose={() => setEditing(false)}
+        onDeleted={() => {
+          // Next.js 16은 떠난 화면의 상태를 기억하므로 시트를 닫고 이동한다
+          setEditing(false);
+          router.replace("/fridge");
+        }}
+      />
       <AddLotSheet open={adding} onClose={() => setAdding(false)} defaultStorage={ing.defaultStorage} presetIngredientId={ing.id} />
     </div>
   );
