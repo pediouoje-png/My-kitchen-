@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRightLeft, BookmarkPlus, BookOpen, Trash2 } from "lucide-react";
+import { ArrowRightLeft, BookmarkPlus, BookOpen, Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -22,6 +22,7 @@ import { ingredientById, MEAL_LABEL, MEAL_TYPES, mealCost } from "@/lib/store/se
 import { findUserRecipe, recipeFromItems } from "@/features/recipes/fromMeal";
 import { SOURCE_LABEL } from "./build";
 import { CompleteMealSheet } from "./CompleteMealSheet";
+import { EditMealSheet } from "./EditMealSheet";
 import { useShortages } from "./useShortages";
 
 export function MealDetailScreen() {
@@ -32,6 +33,7 @@ export function MealDetailScreen() {
   const shortages = useShortages();
   const [completing, setCompleting] = useState(false);
   const [moving, setMoving] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const meal = state.meals.find((m) => m.id === mealId);
@@ -59,6 +61,7 @@ export function MealDetailScreen() {
 
   const remove = () => {
     setConfirmDelete(false);
+    setEditing(false);
     dispatch({ type: "deleteMeal", mealId: meal.id });
     toast("식단에서 삭제했어요");
     router.replace(`/planner?date=${meal.date}`);
@@ -66,7 +69,20 @@ export function MealDetailScreen() {
 
   return (
     <div className="pb-actionbar">
-      <DetailHeader title={`${relativeDayLabel(meal.date, today)} ${MEAL_LABEL[meal.mealType]}`} fallbackHref={`/planner?date=${meal.date}`} />
+      <DetailHeader
+        title={`${relativeDayLabel(meal.date, today)} ${MEAL_LABEL[meal.mealType]}`}
+        fallbackHref={`/planner?date=${meal.date}`}
+        right={
+          <button
+            type="button"
+            aria-label="식단 수정"
+            onClick={() => setEditing(true)}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full active:bg-subtle"
+          >
+            <Pencil size={19} strokeWidth={1.75} />
+          </button>
+        }
+      />
 
       <div className="px-5 pt-2">
         <div className="flex items-start justify-between gap-3">
@@ -183,6 +199,11 @@ export function MealDetailScreen() {
         {meal.status !== "done" && (
           <Card className="mt-7 divide-y divide-line">
             {meal.status === "planned" && (
+              <button type="button" onClick={() => setEditing(true)} className="flex w-full items-center gap-3 px-4 py-3.5 text-left text-[15px] active:bg-subtle">
+                <Pencil size={18} className="text-sub" strokeWidth={1.75} /> 메뉴·재료 수정
+              </button>
+            )}
+            {meal.status === "planned" && (
               <button type="button" onClick={() => setMoving(true)} className="flex w-full items-center gap-3 px-4 py-3.5 text-left text-[15px] active:bg-subtle">
                 <ArrowRightLeft size={18} className="text-sub" strokeWidth={1.75} /> 다른 날로 옮기기
               </button>
@@ -226,6 +247,7 @@ export function MealDetailScreen() {
 
       <CompleteMealSheet meal={meal} open={completing} onClose={() => setCompleting(false)} />
       <MoveMealSheet meal={meal} open={moving} onClose={() => setMoving(false)} />
+      <EditMealSheet meal={meal} open={editing} onClose={() => setEditing(false)} />
       <Sheet
         open={confirmDelete}
         onClose={() => setConfirmDelete(false)}

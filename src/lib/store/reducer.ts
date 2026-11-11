@@ -47,7 +47,16 @@ export type KitchenAction =
   | { type: "addIngredient"; ingredient: Ingredient }
   | { type: "toggleSaveRecipe"; recipeId: string }
   | { type: "addRecipe"; recipe: Recipe }
-  | { type: "updateRecipe"; id: string; patch: Partial<Pick<Recipe, "title" | "description" | "cookMinutes" | "steps" | "saved">> }
+  | {
+      type: "updateRecipe";
+      id: string;
+      patch: Partial<Pick<Recipe, "title" | "description" | "cookMinutes" | "steps" | "saved" | "ingredients" | "servings">>;
+    }
+  | {
+      type: "updateMeal";
+      mealId: string;
+      patch: { title?: string; servings?: number; items?: Omit<MealPlanItem, "shortageQuantity">[] };
+    }
   | { type: "linkMealRecipe"; mealId: string; recipeId: string }
   | { type: "updateIngredient"; id: string; patch: Partial<Omit<Ingredient, "id" | "baseUnit">> }
   | { type: "updateSettings"; settings: Partial<KitchenSettings> }
@@ -310,6 +319,22 @@ export function kitchenReducer(state: KitchenState, action: KitchenAction): Kitc
     case "addRecipe":
       if (state.recipes.some((r) => r.id === action.recipe.id)) return state;
       return { ...state, recipes: [...state.recipes, action.recipe] };
+
+    case "updateMeal":
+      return {
+        ...state,
+        meals: state.meals.map((m) =>
+          // 완료된 식사는 이미 재고가 차감됐으므로 먼저 완료를 취소해야 수정할 수 있다
+          m.id !== action.mealId || m.status === "done"
+            ? m
+            : {
+                ...m,
+                ...(action.patch.title != null ? { title: action.patch.title } : {}),
+                ...(action.patch.servings != null ? { servings: action.patch.servings } : {}),
+                ...(action.patch.items ? { items: action.patch.items.map((i) => ({ ...i, shortageQuantity: 0 })) } : {}),
+              },
+        ),
+      };
 
     case "updateRecipe":
       return {
